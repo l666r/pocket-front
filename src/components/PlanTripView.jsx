@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_URL } from '../config.js';
 
 export default function PlanTripView({ user, onTripCreated, onOpenShare, showToast }) {
   const [destination, setDestination] = useState('Fort Kochi & Ernakulam');
@@ -55,7 +56,7 @@ export default function PlanTripView({ user, onTripCreated, onOpenShare, showToa
   const handleSaveToCloud = async () => {
     setSaving(true);
     try {
-      const res = await fetch('http://localhost:5000/api/trips', {
+      const res = await fetch(`${API_URL}/api/trips`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

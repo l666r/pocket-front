@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../config.js';
 
 export default function RearrangeTripView({ user, onOpenShare, showToast }) {
   const [trips, setTrips] = useState([]);
@@ -10,7 +11,7 @@ export default function RearrangeTripView({ user, onOpenShare, showToast }) {
   const loadTrips = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/trips?userId=${user?.id || 'guest'}`);
+      const res = await fetch(`${API_URL}/api/trips?userId=${user?.id || 'guest'}`);
       const data = await res.json();
       if (data.success && data.trips.length > 0) {
         setTrips(data.trips);
@@ -72,7 +73,7 @@ export default function RearrangeTripView({ user, onOpenShare, showToast }) {
     if (!selectedTrip) return;
     setSaving(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/trips/${selectedTrip._id}`, {
+      const res = await fetch(`${API_URL}/api/trips/${selectedTrip._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -100,7 +101,7 @@ export default function RearrangeTripView({ user, onOpenShare, showToast }) {
     if (!window.confirm(`Are you sure you want to cancel "${selectedTrip.title}"?`)) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/trips/${selectedTrip._id}`, {
+      const res = await fetch(`${API_URL}/api/trips/${selectedTrip._id}`, {
         method: 'DELETE',
       });
       const data = await res.json();
@@ -117,7 +118,7 @@ export default function RearrangeTripView({ user, onOpenShare, showToast }) {
   const handleToggleFavorite = async () => {
     if (!selectedTrip) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/trips/${selectedTrip._id}/favorite`, {
+      const res = await fetch(`${API_URL}/api/trips/${selectedTrip._id}/favorite`, {
         method: 'PUT',
       });
       const data = await res.json();

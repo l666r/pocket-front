@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { API_URL } from '../config.js';
 
 export default function ChatBotView({ user, onOpenShare, showToast }) {
   const [messages, setMessages] = useState([]);
@@ -42,7 +43,7 @@ export default function ChatBotView({ user, onOpenShare, showToast }) {
   const loadSessions = async () => {
     try {
       const uid = user?.id || user?._id || user?.email || 'guest';
-      const res = await fetch(`http://localhost:5000/api/chat/history?userId=${uid}`);
+      const res = await fetch(`${API_URL}/api/chat/history?userId=${uid}`);
       const data = await res.json();
       if (data.success) {
         setSessions(data.sessions || []);
@@ -75,7 +76,7 @@ export default function ChatBotView({ user, onOpenShare, showToast }) {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/chat', {
+      const res = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -117,7 +118,7 @@ export default function ChatBotView({ user, onOpenShare, showToast }) {
   const handleDeleteSession = async (e, idToDelete) => {
     e.stopPropagation();
     try {
-      const res = await fetch(`http://localhost:5000/api/chat/${idToDelete}`, {
+      const res = await fetch(`${API_URL}/api/chat/${idToDelete}`, {
         method: 'DELETE',
       });
       const data = await res.json();
@@ -138,7 +139,7 @@ export default function ChatBotView({ user, onOpenShare, showToast }) {
     if (!window.confirm('Delete all your saved chat conversations from cloud?')) return;
     try {
       const uid = user?.id || user?._id || user?.email || 'guest';
-      const res = await fetch(`http://localhost:5000/api/chat?userId=${uid}`, {
+      const res = await fetch(`${API_URL}/api/chat?userId=${uid}`, {
         method: 'DELETE',
       });
       const data = await res.json();
@@ -167,7 +168,7 @@ export default function ChatBotView({ user, onOpenShare, showToast }) {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/chat/share', {
+      const res = await fetch(`${API_URL}/api/chat/share`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

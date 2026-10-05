@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../config.js';
 
 export default function ContributePlacesView({ user, showToast }) {
   const [places, setPlaces] = useState([]);
@@ -20,7 +21,7 @@ export default function ContributePlacesView({ user, showToast }) {
   const loadPlaces = async () => {
     setLoading(true);
     try {
-      const url = new URL('http://localhost:5000/api/places');
+      const url = new URL(`${API_URL}/api/places`);
       if (selectedArea !== 'All') url.searchParams.append('area', selectedArea);
       if (selectedCategory !== 'All') url.searchParams.append('category', selectedCategory);
 
@@ -42,7 +43,7 @@ export default function ContributePlacesView({ user, showToast }) {
 
   const handleUpvote = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/places/${id}/upvote`, {
+      const res = await fetch(`${API_URL}/api/places/${id}/upvote`, {
         method: 'POST',
       });
       const data = await res.json();
@@ -66,7 +67,7 @@ export default function ContributePlacesView({ user, showToast }) {
 
     setSubmitting(true);
     try {
-      const res = await fetch('http://localhost:5000/api/places', {
+      const res = await fetch(`${API_URL}/api/places`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

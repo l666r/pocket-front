@@ -12,8 +12,9 @@ import FeedbackModal from './components/FeedbackModal.jsx';
 import SharedTripView from './components/SharedTripView.jsx';
 import Toast from './components/Toast.jsx';
 import { I18N } from './i18n.js';
+import { API_URL } from './config.js';
 
-const API_BASE = 'http://localhost:5000/api/auth';
+const API_BASE = `${API_URL}/api/auth`;
 
 export default function App() {
   // Navigation: 'chatbot' | 'plantrip' | 'rearrange' | 'favorites' | 'contribute' | 'auth'
@@ -90,7 +91,7 @@ export default function App() {
   useEffect(() => {
     const checkServer = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/health');
+        const res = await fetch(`${API_URL}/api/health`);
         if (res.ok) setServerOnline(true);
         else setServerOnline(false);
       } catch (e) {

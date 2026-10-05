@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../config.js';
 
 export default function SharedTripView({ shareCode, onOpenApp, showToast }) {
   const [trip, setTrip] = useState(null);
@@ -16,7 +17,7 @@ export default function SharedTripView({ shareCode, onOpenApp, showToast }) {
     const fetchSharedTrip = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:5000/api/trips/share/${shareCode}`);
+        const res = await fetch(`${API_URL}/api/trips/share/${shareCode}`);
         const data = await res.json();
         if (!res.ok || !data.success) {
           throw new Error(data.message || 'Shared trip not found or expired');

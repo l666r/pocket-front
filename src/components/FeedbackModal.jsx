@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_URL } from '../config.js';
 
 export default function FeedbackModal({ isOpen, onClose, user, showToast }) {
   const [category, setCategory] = useState('Feature Request');
@@ -17,7 +18,7 @@ export default function FeedbackModal({ isOpen, onClose, user, showToast }) {
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/feedback', {
+      const res = await fetch(`${API_URL}/api/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

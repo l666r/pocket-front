@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../config.js';
 
 export default function FavoritesView({ user, onSelectTrip, onOpenShare, showToast }) {
   const [favorites, setFavorites] = useState([]);
@@ -7,7 +8,7 @@ export default function FavoritesView({ user, onSelectTrip, onOpenShare, showToa
   const loadFavorites = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/trips?userId=${user?.id || 'guest'}`);
+      const res = await fetch(`${API_URL}/api/trips?userId=${user?.id || 'guest'}`);
       const data = await res.json();
       if (data.success) {
         setFavorites(data.trips.filter((t) => t.isFavorite));
@@ -25,7 +26,7 @@ export default function FavoritesView({ user, onSelectTrip, onOpenShare, showToa
 
   const handleRemoveFavorite = async (tripId) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/trips/${tripId}/favorite`, {
+      const res = await fetch(`${API_URL}/api/trips/${tripId}/favorite`, {
         method: 'PUT',
       });
       const data = await res.json();
