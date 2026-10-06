@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import ChatBotView from './components/ChatBotView.jsx';
+import DashboardView from './components/DashboardView.jsx';
+import OnboardingView from './components/OnboardingView.jsx';
+import MapExplorerView from './components/MapExplorerView.jsx';
+import TransitHubView from './components/TransitHubView.jsx';
+import BudgetTrackerView from './components/BudgetTrackerView.jsx';
+import EventsView from './components/EventsView.jsx';
 import PlanTripView from './components/PlanTripView.jsx';
 import RearrangeTripView from './components/RearrangeTripView.jsx';
 import FavoritesView from './components/FavoritesView.jsx';
 import ContributePlacesView from './components/ContributePlacesView.jsx';
+import ChatBotView from './components/ChatBotView.jsx';
+import ProfileView from './components/ProfileView.jsx';
 import LoginForm from './components/LoginForm.jsx';
 import RegisterForm from './components/RegisterForm.jsx';
 import OtpVerification from './components/OtpVerification.jsx';
 import ShareModal from './components/ShareModal.jsx';
 import FeedbackModal from './components/FeedbackModal.jsx';
+import EmergencyModal from './components/EmergencyModal.jsx';
+import StoryPassModal from './components/StoryPassModal.jsx';
 import SharedTripView from './components/SharedTripView.jsx';
 import Toast from './components/Toast.jsx';
 import { I18N } from './i18n.js';
@@ -16,9 +25,18 @@ import { API_URL } from './config.js';
 
 const API_BASE = `${API_URL}/api/auth`;
 
+const SUPPORTED_CITIES = [
+  { id: 'Kochi', name: 'Kochi', country: 'India', flag: '🇮🇳' },
+  { id: 'Tokyo', name: 'Tokyo', country: 'Japan', flag: '🇯🇵' },
+  { id: 'Paris', name: 'Paris', country: 'France', flag: '🇫🇷' },
+  { id: 'London', name: 'London', country: 'United Kingdom', flag: '🇬🇧' },
+  { id: 'NewYork', name: 'New York', country: 'United States', flag: '🇺🇸' },
+  { id: 'Dubai', name: 'Dubai', country: 'United Arab Emirates', flag: '🇦🇪' },
+];
+
 export default function App() {
-  // Navigation: 'chatbot' | 'plantrip' | 'rearrange' | 'favorites' | 'contribute' | 'auth'
-  const [activeTab, setActiveTab] = useState('chatbot');
+  // Navigation: 'dashboard' | 'onboarding' | 'map' | 'plantrip' | 'rearrange' | 'transit' | 'budget' | 'events' | 'contribute' | 'favorites' | 'chatbot' | 'auth'
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [authScreen, setAuthScreen] = useState('login'); // 'login' | 'register' | 'otp'
   const [sidebarMini, setSidebarMini] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -27,14 +45,20 @@ export default function App() {
   // User & Settings
   const [user, setUser] = useState(null);
   const [pendingUser, setPendingUser] = useState(null);
-  const [theme, setTheme] = useState(localStorage.getItem('pocketroute_theme') || 'light');
+  const [theme, setTheme] = useState(localStorage.getItem('pocketroute_theme') || 'dark');
   const [lang, setLang] = useState(localStorage.getItem('pocketroute_lang') || 'en');
   const [serverOnline, setServerOnline] = useState(false);
   const [toasts, setToasts] = useState([]);
 
+  // Global City Selection & Intelligence Data
+  const [currentCity, setCurrentCity] = useState('Kochi');
+  const [cityData, setCityData] = useState(null);
+
   // Modals
   const [shareData, setShareData] = useState(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+  const [showStoryPassModal, setShowStoryPassModal] = useState(false);
 
   const t = I18N[lang] || I18N.en;
 
@@ -61,13 +85,13 @@ export default function App() {
     };
   }, []);
 
-  // Toggle Theme
+  // Theme Sync
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('pocketroute_theme', theme);
   }, [theme]);
 
-  // Toggle Language
+  // Language Sync
   useEffect(() => {
     localStorage.setItem('pocketroute_lang', lang);
   }, [lang]);
@@ -80,6 +104,14 @@ export default function App() {
       try {
         const parsed = JSON.parse(savedUser);
         setUser(parsed);
+        if (parsed.preferences?.selectedCity) {
+          setCurrentCity(parsed.preferences.selectedCity);
+        }
+        if (parsed.hasCompletedOnboarding === false) {
+          setActiveTab('onboarding');
+        } else {
+          setActiveTab('dashboard');
+        }
       } catch (e) {
         localStorage.removeItem('pocketroute_user');
         localStorage.removeItem('pocketroute_token');
@@ -103,6 +135,22 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Load intelligence data for selected global city
+  useEffect(() => {
+    const fetchCityIntelligence = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/intelligence/city/${currentCity}`);
+        const data = await res.json();
+        if (data.success && data.city) {
+          setCityData(data.city);
+        }
+      } catch (err) {
+        console.warn('Could not load city intelligence data:', err);
+      }
+    };
+    fetchCityIntelligence();
+  }, [currentCity]);
+
   const showToast = (message, type = 'info') => {
     const id = Date.now() + Math.random().toString(36).substring(2, 8);
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -119,17 +167,32 @@ export default function App() {
   const handleRegisterSuccess = (userInfo) => {
     setPendingUser(userInfo);
     setAuthScreen('otp');
+    showToast(`Verification code sent! Test OTP is 12345`, 'info');
   };
 
   const handleVerifySuccess = (verifiedUser) => {
     setUser(verifiedUser);
-    setActiveTab('chatbot');
-    showToast(`Welcome to PocketRoute, ${verifiedUser.name.split(' ')[0]}!`, 'success');
+    localStorage.setItem('pocketroute_user', JSON.stringify(verifiedUser));
+
+    // If onboarding not completed, guide to Likes selection
+    if (!verifiedUser.hasCompletedOnboarding) {
+      setActiveTab('onboarding');
+      showToast(`Welcome ${verifiedUser.name.split(' ')[0]}! Please select your vibe.`, 'success');
+    } else {
+      setActiveTab('dashboard');
+      showToast(`Welcome back, ${verifiedUser.name.split(' ')[0]}!`, 'success');
+    }
   };
 
   const handleLoginSuccess = (loggedInUser) => {
     setUser(loggedInUser);
-    setActiveTab('chatbot');
+    localStorage.setItem('pocketroute_user', JSON.stringify(loggedInUser));
+
+    if (!loggedInUser.hasCompletedOnboarding) {
+      setActiveTab('onboarding');
+    } else {
+      setActiveTab('dashboard');
+    }
     showToast(`Signed in as ${loggedInUser.name.split(' ')[0]}`, 'success');
   };
 
@@ -144,7 +207,7 @@ export default function App() {
     setUser(null);
     setPendingUser(null);
     setAuthScreen('login');
-    setActiveTab('chatbot');
+    setActiveTab('dashboard');
     setMobileMenuOpen(false);
     setShareData(null);
     setShowFeedbackModal(false);
@@ -158,32 +221,76 @@ export default function App() {
       email: 'guest@pocketroute.local',
       mobile: '9847012345',
       isGuest: true,
+      hasCompletedOnboarding: false,
+      preferences: {
+        likes: ['movies', 'travel', 'cafes', 'transit', 'heritage', 'events', 'sunsets'],
+        dislikes: [],
+        selectedCity: currentCity,
+        currency: 'INR',
+      },
+      favorites: [],
     };
     localStorage.setItem('pocketroute_token', 'guest_token_' + Date.now());
     localStorage.setItem('pocketroute_user', JSON.stringify(guestUser));
     setUser(guestUser);
-    setActiveTab('chatbot');
-    showToast('Entered as Guest Explorer', 'info');
+    setActiveTab('onboarding');
+    showToast('Entered as Guest Explorer! Let us configure your preferences.', 'info');
+  };
+
+  const handleOnboardingComplete = (savedPrefs) => {
+    const updatedUser = {
+      ...(user || {}),
+      hasCompletedOnboarding: true,
+      preferences: {
+        ...(user?.preferences || {}),
+        ...savedPrefs,
+      },
+    };
+    setUser(updatedUser);
+    localStorage.setItem('pocketroute_user', JSON.stringify(updatedUser));
+    if (savedPrefs.selectedCity) {
+      setCurrentCity(savedPrefs.selectedCity);
+    }
+    setActiveTab('dashboard');
+    showToast('Preferences saved! Dashboard customized for your vibe ✨', 'success');
+  };
+
+  // Toggle Favorite Item in Database
+  const handleToggleFavorite = async (item) => {
+    if (!item) return;
+    try {
+      const uid = user?.id || user?._id || 'guest';
+      const res = await fetch(`${API_URL}/api/auth/favorites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid, item }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const updatedFavorites = data.favorites || [];
+        const updatedUser = { ...(user || {}), favorites: updatedFavorites };
+        setUser(updatedUser);
+        localStorage.setItem('pocketroute_user', JSON.stringify(updatedUser));
+      }
+    } catch (err) {
+      console.warn('Favorite toggled in local state:', err);
+    }
   };
 
   const navItems = [
-    { id: 'chatbot', label: 'Chat-Bot', icon: '🤖', badge: 'AI' },
-    { id: 'plantrip', label: 'Plan the Trip', icon: '🗺️' },
-    { id: 'rearrange', label: 'Re-Arrange your Trip', icon: '🔄' },
-    { id: 'favorites', label: 'My Favorites', icon: '⭐' },
+    { id: 'dashboard', label: 'Dashboard', icon: '✨', badge: 'Live' },
+    { id: 'map', label: 'Map Explorer', icon: '📍', badge: 'GPS' },
+    { id: 'plantrip', label: 'Plan Trip', icon: '🗺️' },
+    { id: 'rearrange', label: 'Re-Arrange & AI', icon: '🔄', badge: 'AI' },
+    { id: 'transit', label: 'Transit Hub', icon: '⛴️' },
+    { id: 'budget', label: 'Budget & Split', icon: '💳' },
+    { id: 'events', label: 'Events & Culture', icon: '🎭' },
     { id: 'contribute', label: 'Contribute Places', icon: '📍', badge: 'Crowd' },
+    { id: 'favorites', label: 'My Favorites', icon: '❤️' },
+    { id: 'chatbot', label: 'AI Chat-Bot', icon: '🤖', badge: 'AI' },
   ];
 
-  const viewTitles = {
-    chatbot: 'PocketRoute AI Chat-Bot',
-    plantrip: 'Plan the Trip (Time, Budget, Traffic & Weather)',
-    rearrange: 'Re-Arrange your Trip',
-    favorites: 'My Favorites',
-    contribute: 'Contribute Places (Google Maps Style)',
-    auth: user ? 'Account Profile' : 'Sign In & Registration',
-  };
-
-  // Standalone Shared Trip View: when a shared trip link is opened, view only that trip plan
+  // Standalone Shared Trip View
   if (sharedTripCode) {
     return (
       <div className="pocketroute-app-shell">
@@ -192,31 +299,23 @@ export default function App() {
           onOpenApp={() => {
             window.location.hash = '';
             setSharedTripCode(null);
-            setActiveTab('chatbot');
+            setActiveTab('dashboard');
           }}
           showToast={showToast}
         />
-
-        {/* Floating Toast Notification Portal */}
         <div className="toast-portal">
           {toasts.map((toast) => (
-            <Toast
-              key={toast.id}
-              toast={toast}
-              onDismiss={() => dismissToast(toast.id)}
-            />
+            <Toast key={toast.id} toast={toast} onDismiss={() => dismissToast(toast.id)} />
           ))}
         </div>
       </div>
     );
   }
 
-  // When signed out or unauthenticated (!user), show ONLY the authentication screen
-  // No sidebar, no chatbot, no trip plans, no app views are visible to signed-out users
+  // When unauthenticated (!user), show Authentication Screen
   if (!user) {
     return (
       <div className="pocketroute-app-shell">
-        {/* Top Navbar in Auth Mode */}
         <header className="pocketroute-navbar">
           <div className="brand-group">
             <div className="brand-title">
@@ -226,7 +325,6 @@ export default function App() {
           </div>
 
           <div className="navbar-right-controls">
-            {/* MongoDB Atlas Live Connection Status */}
             <div
               className={`server-status-pill ${serverOnline ? 'online' : 'connecting'}`}
               title={serverOnline ? 'MongoDB Atlas Cluster Connected' : 'Connecting to database...'}
@@ -235,38 +333,19 @@ export default function App() {
               <span className="status-label">{serverOnline ? 'Atlas Cloud Live' : 'Connecting...'}</span>
             </div>
 
-            {/* Language Switcher */}
-            <button
-              type="button"
-              className="nav-icon-btn"
-              onClick={() => {
-                const next = lang === 'en' ? 'ml' : 'en';
-                setLang(next);
-                showToast(next === 'ml' ? 'ഭാഷ: മലയാളം' : 'Language: English', 'info');
-              }}
-              title="Switch Language"
-            >
-              <span>文A</span>
-              <span className="hide-on-mobile">{lang === 'en' ? 'മലയാളം' : 'English'}</span>
-            </button>
-
-            {/* Theme Switcher */}
             <button
               type="button"
               className="nav-icon-btn"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               title="Toggle Light / Dark Mode"
-              aria-label="Toggle Theme"
             >
               <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
             </button>
           </div>
         </header>
 
-        {/* Centered Auth Stage (Register / Login / OTP) */}
         <main className="auth-stage-container">
           <div className="auth-wrapper">
-            {/* Segmented Switch for Register & Sign In */}
             {authScreen !== 'otp' && (
               <div className="auth-segmented-switch">
                 <button
@@ -324,19 +403,17 @@ export default function App() {
           </div>
         </main>
 
-        {/* Floating Toast Notification Portal */}
         <div className="toast-portal">
           {toasts.map((toast) => (
-            <Toast
-              key={toast.id}
-              toast={toast}
-              onDismiss={() => dismissToast(toast.id)}
-            />
+            <Toast key={toast.id} toast={toast} onDismiss={() => dismissToast(toast.id)} />
           ))}
         </div>
       </div>
     );
   }
+
+  const activeLikes = user?.preferences?.likes || ['movies', 'travel', 'cafes', 'transit', 'heritage', 'events', 'sunsets'];
+  const userFavorites = user?.favorites || [];
 
   return (
     <div className={`pocketroute-app-shell ${sidebarMini ? 'mini-sidebar' : ''}`}>
@@ -353,45 +430,75 @@ export default function App() {
             ☰
           </button>
 
-          <div className="brand-group" onClick={() => setActiveTab('chatbot')}>
+          <div className="brand-group" onClick={() => setActiveTab('dashboard')}>
             <div className="brand-title">
               <span>Pocket</span><b>Route</b>
             </div>
-            <span className="brand-tagline">{t.app_tagline}</span>
+            <span className="brand-tagline">Worldwide Location Intelligence</span>
           </div>
         </div>
 
+        {/* Global City Selector & Navbar Controls */}
         <div className="navbar-right-controls">
-          {/* MongoDB Atlas Live Connection Status */}
-          <div className={`server-status-pill ${serverOnline ? 'online' : 'connecting'}`} title={serverOnline ? 'MongoDB Atlas Cluster Connected' : 'Connecting to database...'}>
-            <span className="pulse-dot"></span>
-            <span className="status-label">{serverOnline ? 'Atlas Cloud Live' : 'Connecting...'}</span>
+          {/* Global City Selector Dropdown */}
+          <div className="city-selector-wrap">
+            <select
+              className="city-select-dropdown"
+              value={currentCity}
+              onChange={(e) => {
+                const nextCity = e.target.value;
+                setCurrentCity(nextCity);
+                showToast(`Switched active location to ${nextCity}`, 'success');
+              }}
+              title="Select Global Destination"
+            >
+              {SUPPORTED_CITIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.flag} {c.name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* User Suggestion Button */}
+          {/* Emergency SOS Button */}
           <button
             type="button"
-            className="nav-icon-btn"
-            onClick={() => setShowFeedbackModal(true)}
-            title="Send your suggestions to improve PocketRoute"
+            className="btn-sos-pulse"
+            onClick={() => setShowEmergencyModal(true)}
+            title="1-Tap Emergency & Safety Hotlines"
           >
-            <span>💡</span>
-            <span className="hide-on-mobile">Suggest</span>
+            <span>🚨</span>
+            <span className="hide-on-mobile">SOS Hub</span>
           </button>
 
-          {/* Language Switcher */}
+          {/* 9:16 Story Pass Generator */}
           <button
             type="button"
-            className="nav-icon-btn"
-            onClick={() => {
-              const next = lang === 'en' ? 'ml' : 'en';
-              setLang(next);
-              showToast(next === 'ml' ? 'ഭാഷ: മലയാളം' : 'Language: English', 'info');
-            }}
-            title="Switch Language"
+            className="nav-icon-btn hide-on-mobile"
+            onClick={() => setShowStoryPassModal(true)}
+            title="Generate 9:16 Instagram Story Travel Pass"
           >
-            <span>文A</span>
-            <span className="hide-on-mobile">{lang === 'en' ? 'മലയാളം' : 'English'}</span>
+            <span>📸</span>
+            <span>Story Pass</span>
+          </button>
+
+          {/* MongoDB Atlas Live Connection Status */}
+          <div
+            className={`server-status-pill hide-on-mobile ${serverOnline ? 'online' : 'connecting'}`}
+            title={serverOnline ? 'MongoDB Atlas Cluster Connected' : 'Connecting to database...'}
+          >
+            <span className="pulse-dot"></span>
+            <span className="status-label">{serverOnline ? 'Atlas Live' : 'Connecting...'}</span>
+          </div>
+
+          {/* Suggestion Feedback Button */}
+          <button
+            type="button"
+            className="nav-icon-btn hide-on-mobile"
+            onClick={() => setShowFeedbackModal(true)}
+            title="Send your suggestions"
+          >
+            <span>💡</span>
           </button>
 
           {/* Theme Switcher */}
@@ -400,40 +507,46 @@ export default function App() {
             className="nav-icon-btn"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             title="Toggle Light / Dark Mode"
-            aria-label="Toggle Theme"
           >
             <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
           </button>
 
-          {/* User Profile / Auth Avatar */}
-          <div
-            className="av"
-            onClick={() => setActiveTab('auth')}
-            title={user ? `${user.name} (${user.email})` : 'Sign in / Create Account'}
-            style={{ width: '32px', height: '32px', fontSize: '13px', cursor: 'pointer' }}
-          >
-            {user?.name ? user.name.charAt(0).toUpperCase() : '👤'}
-          </div>
+          {/* User Profile & Session Suite */}
+          <div className="nav-user-suite">
+            {/* User Profile Chip */}
+            <button
+              type="button"
+              className="nav-user-chip"
+              onClick={() => setActiveTab('profile')}
+              title={`Profile: ${user.name} (${user.email}) • View Vibes & Dashboard`}
+            >
+              <div className="nav-user-avatar">
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'B'}
+              </div>
+              <span className="nav-user-name hide-on-mobile">
+                {user?.name ? user.name.split(' ')[0] : 'Explorer'}
+              </span>
+            </button>
 
-          {/* Quick Sign Out Button in Header */}
-          <button
-            type="button"
-            className="nav-signout-btn"
-            onClick={handleLogout}
-            title="Sign out of PocketRoute"
-          >
-            <span style={{ fontSize: '13px' }}>🚪</span>
-            <span className="hide-on-mobile">Sign Out</span>
-          </button>
+            {/* Sign Out Button (Desktop only, mobile has it in drawer) */}
+            <button
+              type="button"
+              className="nav-signout-btn hide-on-mobile"
+              onClick={handleLogout}
+              title="Sign out of PocketRoute"
+            >
+              <span className="signout-icon">🚪</span>
+              <span className="signout-label">Sign Out</span>
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Main Layout Body */}
       <div className="pocketroute-body-layout">
-        
         {/* Left Persistent Sidebar (Collapsible & Mobile Drawer) */}
         <aside className={`pocketroute-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
-          <div className="sidebar-section-title">MAIN NAVIGATION</div>
+          <div className="sidebar-section-title">GLOBAL NAVIGATION</div>
 
           {navItems.map((item) => (
             <button
@@ -451,7 +564,31 @@ export default function App() {
             </button>
           ))}
 
-          <div className="sidebar-section-title" style={{ marginTop: '20px' }}>COMMUNITY & ACCOUNT</div>
+          <div className="sidebar-section-title" style={{ marginTop: '20px' }}>TOOLS & PROFILE</div>
+
+          <button
+            type="button"
+            className="sidebar-nav-btn"
+            onClick={() => {
+              setActiveTab('onboarding');
+              setMobileMenuOpen(false);
+            }}
+          >
+            <span className="snb-icon">✨</span>
+            <span className="snb-label">Edit Likes & Vibes</span>
+          </button>
+
+          <button
+            type="button"
+            className="sidebar-nav-btn"
+            onClick={() => {
+              setShowEmergencyModal(true);
+              setMobileMenuOpen(false);
+            }}
+          >
+            <span className="snb-icon">🚨</span>
+            <span className="snb-label">Emergency SOS</span>
+          </button>
 
           <button
             type="button"
@@ -462,30 +599,17 @@ export default function App() {
             }}
           >
             <span className="snb-icon">💡</span>
-            <span className="snb-label">Suggest Improvements</span>
+            <span className="snb-label">Feedback & Ideas</span>
           </button>
 
           <button
             type="button"
-            className={`sidebar-nav-btn ${activeTab === 'auth' ? 'active' : ''}`}
+            className="sidebar-nav-btn hide-on-desktop"
+            style={{ color: '#EF4444', marginTop: '12px', borderTop: '1px solid var(--line)', paddingTop: '12px' }}
             onClick={() => {
-              setActiveTab('auth');
-              setMobileMenuOpen(false);
-            }}
-          >
-            <span className="snb-icon">👤</span>
-            <span className="snb-label">{user?.name ? user.name.split(' ')[0] : 'My Profile'}</span>
-          </button>
-
-          {/* Dedicated Sign Out Button in Sidebar */}
-          <button
-            type="button"
-            className="sidebar-nav-btn sidebar-signout-btn"
-            onClick={() => {
-              setMobileMenuOpen(false);
               handleLogout();
+              setMobileMenuOpen(false);
             }}
-            title="Sign out of PocketRoute"
           >
             <span className="snb-icon">🚪</span>
             <span className="snb-label">Sign Out</span>
@@ -493,7 +617,6 @@ export default function App() {
 
           <div style={{ flex: 1 }}></div>
 
-          {/* Collapse Sidebar Button on Desktop */}
           <button
             type="button"
             className="sidebar-nav-btn hide-on-mobile"
@@ -515,30 +638,65 @@ export default function App() {
         {/* Main Content Workspace */}
         <main className={`pocketroute-main-content ${activeTab === 'chatbot' ? 'chat-mode' : ''}`}>
           <div className={`content-inner-shell ${activeTab === 'chatbot' ? 'chat-inner-shell' : ''}`}>
-
-            {/* View 1: Chat-Bot */}
-            {activeTab === 'chatbot' && (
-              <ChatBotView
+            {/* VIEW: Onboarding (Likes & Dislikes) */}
+            {activeTab === 'onboarding' && (
+              <OnboardingView
                 user={user}
-                onOpenShare={(data) => setShareData(data)}
+                currentCity={currentCity}
+                onComplete={handleOnboardingComplete}
                 showToast={showToast}
               />
             )}
 
-            {/* View 2: Plan the Trip */}
+            {/* VIEW: Dynamic Personalized Dashboard */}
+            {activeTab === 'dashboard' && (
+              <DashboardView
+                user={user}
+                currentCity={currentCity}
+                cityData={cityData}
+                userLikes={activeLikes}
+                onNavigate={(tab) => setActiveTab(tab)}
+                onLogout={handleLogout}
+                onAddToTrip={(stop) => {
+                  setActiveTab('plantrip');
+                  showToast(`Added to trip! Set your itinerary times.`, 'success');
+                }}
+                onToggleFavorite={handleToggleFavorite}
+                favorites={userFavorites}
+                showToast={showToast}
+              />
+            )}
+
+            {/* VIEW: Interactive Vector Map Explorer */}
+            {activeTab === 'map' && (
+              <MapExplorerView
+                currentCity={currentCity}
+                cityData={cityData}
+                onAddToTrip={(landmark) => {
+                  setActiveTab('plantrip');
+                  showToast(`Imported landmark to trip planner!`, 'success');
+                }}
+                onToggleFavorite={handleToggleFavorite}
+                favorites={userFavorites}
+                showToast={showToast}
+              />
+            )}
+
+            {/* VIEW: Smart Multi-Modal Trip Planner */}
             {activeTab === 'plantrip' && (
               <PlanTripView
                 user={user}
+                currentCity={currentCity}
+                cityData={cityData}
                 onTripCreated={(trip) => {
-                  setActiveTab('rearrange');
-                  showToast('Trip created! You can now re-order stops.', 'success');
+                  showToast('Trip itinerary created! Ready to customize or re-order.', 'success');
                 }}
                 onOpenShare={(data) => setShareData(data)}
                 showToast={showToast}
               />
             )}
 
-            {/* View 3: Re-Arrange your Trip */}
+            {/* VIEW: Re-Arrange & 1-Click AI Route Optimizer */}
             {activeTab === 'rearrange' && (
               <RearrangeTripView
                 user={user}
@@ -547,19 +705,37 @@ export default function App() {
               />
             )}
 
-            {/* View 4: My Favorites */}
-            {activeTab === 'favorites' && (
-              <FavoritesView
-                user={user}
-                onSelectTrip={(trip) => {
-                  setActiveTab('rearrange');
-                }}
-                onOpenShare={(data) => setShareData(data)}
+            {/* VIEW: Global Smart Transit Hub */}
+            {activeTab === 'transit' && (
+              <TransitHubView
+                currentCity={currentCity}
+                cityData={cityData}
                 showToast={showToast}
               />
             )}
 
-            {/* View 5: Contribute Places */}
+            {/* VIEW: Budget & Split with Friends */}
+            {activeTab === 'budget' && (
+              <BudgetTrackerView
+                currentCity={currentCity}
+                currencySymbol={cityData?.currencySymbol || '₹'}
+                showToast={showToast}
+              />
+            )}
+
+            {/* VIEW: Regional & Worldwide Events Calendar */}
+            {activeTab === 'events' && (
+              <EventsView
+                currentCity={currentCity}
+                cityData={cityData}
+                onAddToTrip={(ev) => {
+                  setActiveTab('plantrip');
+                }}
+                showToast={showToast}
+              />
+            )}
+
+            {/* VIEW: Crowd-Sourced Places (with Photos & Ratings) */}
             {activeTab === 'contribute' && (
               <ContributePlacesView
                 user={user}
@@ -567,88 +743,146 @@ export default function App() {
               />
             )}
 
-            {/* View 6: User Account & Profile */}
-            {activeTab === 'auth' && (
-              <div className="auth-stage-container" style={{ padding: '10px 0' }}>
-                <div className="auth-wrapper">
-                  <div className="auth-card verified-success-card">
-                    <div className="success-check-avatar">
-                      {user?.name ? user.name.charAt(0).toUpperCase() : '👤'}
-                    </div>
-                    <h2 className="auth-card-title">{t.dash_welcome} {user?.name}!</h2>
-                    <p className="auth-card-subtitle">
-                      {user?.isGuest ? 'Guest Explorer Session' : 'Account verified on MongoDB Atlas Cloud'}
-                    </p>
-
-                    <div className="verified-meta-box">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '13px', color: 'var(--mut)' }}>Email</span>
-                        <span style={{ fontSize: '13.5px', fontWeight: '500' }}>{user?.email}</span>
-                      </div>
-                      {user?.mobile && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '13px', color: 'var(--mut)' }}>Mobile</span>
-                          <span style={{ fontSize: '13.5px', fontWeight: '500' }}>+91 {user.mobile}</span>
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '13px', color: 'var(--mut)' }}>Cloud Database</span>
-                        <span style={{ fontSize: '12px', color: 'var(--acc)', fontWeight: '600' }}>
-                          pocketroute.cluster0 (Atlas)
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="btn-primary-teal"
-                      style={{ background: 'var(--bads)', color: 'var(--bad)', border: '1px solid var(--bad)', fontWeight: '700' }}
-                      onClick={handleLogout}
-                    >
-                      🚪 {t.btn_signout}
-                    </button>
-                  </div>
-                </div>
-              </div>
+            {/* VIEW: My Favorites & Saved Items */}
+            {activeTab === 'favorites' && (
+              <FavoritesView
+                user={user}
+                onSelectTrip={() => setActiveTab('rearrange')}
+                onOpenShare={(data) => setShareData(data)}
+                showToast={showToast}
+              />
             )}
 
+            {/* VIEW: AI Travel Chatbot ("Budgo AI") */}
+            {activeTab === 'chatbot' && (
+              <ChatBotView
+                user={user}
+                onOpenShare={(data) => setShareData(data)}
+                showToast={showToast}
+              />
+            )}
+
+            {/* VIEW: Profile & Space-Maximized Settings (Reference Screenshot 5) */}
+            {activeTab === 'profile' && (
+              <ProfileView
+                user={user}
+                currentCity={currentCity}
+                onLogout={handleLogout}
+                onNavigate={(tab) => setActiveTab(tab)}
+                showToast={showToast}
+              />
+            )}
           </div>
         </main>
       </div>
 
-      {/* Bottom Navigation Bar for Mobile Screens (< 768px) */}
-      <nav className="mobile-bottom-tabbar" aria-label="Mobile Navigation">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={`mbt-item ${activeTab === item.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(item.id)}
-          >
-            <span className="mbt-icon">{item.icon}</span>
-            <span className="mbt-label">{item.label.split(' ')[0]}</span>
-          </button>
-        ))}
+      {/* ============================================================== */}
+      {/* NATIVE MOBILE BOTTOM APPLICATION BAR (Fixed for Touch Screens) */}
+      {/* ============================================================== */}
+      <nav className="mobile-bottom-app-bar" aria-label="Mobile Bottom Navigation">
+        <button
+          type="button"
+          className={`mba-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('dashboard');
+            setMobileMenuOpen(false);
+          }}
+        >
+          <span className="mba-icon">🏠</span>
+          <span className="mba-label">Explore</span>
+        </button>
+
+        <button
+          type="button"
+          className={`mba-tab ${activeTab === 'plantrip' || activeTab === 'rearrange' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('plantrip');
+            setMobileMenuOpen(false);
+          }}
+        >
+          <span className="mba-icon">🗺️</span>
+          <span className="mba-label">My trips</span>
+        </button>
+
+        {/* Elevated Center Amber Contribute Button (Matches Reference Screenshots) */}
+        <button
+          type="button"
+          className={`mba-tab mba-center-action-tab ${activeTab === 'contribute' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('contribute');
+            setMobileMenuOpen(false);
+          }}
+          title="Contribute a Hidden Gem"
+        >
+          <div className="mba-floating-plus-btn">
+            <span>+</span>
+          </div>
+          <span className="mba-label">Contribute</span>
+        </button>
+
+        <button
+          type="button"
+          className={`mba-tab ${activeTab === 'favorites' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('favorites');
+            setMobileMenuOpen(false);
+          }}
+        >
+          <span className="mba-icon">🤍</span>
+          <span className="mba-label">Favorites</span>
+        </button>
+
+        <button
+          type="button"
+          className={`mba-tab ${activeTab === 'profile' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('profile');
+            setMobileMenuOpen(false);
+          }}
+        >
+          <span className="mba-icon">👤</span>
+          <span className="mba-label">Profile</span>
+        </button>
       </nav>
 
-      {/* Universal Share Modal (ChatGPT-style) */}
-      <ShareModal
-        isOpen={Boolean(shareData)}
-        onClose={() => setShareData(null)}
-        shareData={shareData}
+      {/* Global Modals */}
+      {shareData && (
+        <ShareModal
+          data={shareData}
+          onClose={() => setShareData(null)}
+          showToast={showToast}
+        />
+      )}
+
+      {showFeedbackModal && (
+        <FeedbackModal
+          user={user}
+          onClose={() => setShowFeedbackModal(false)}
+          showToast={showToast}
+        />
+      )}
+
+      <EmergencyModal
+        isOpen={showEmergencyModal}
+        onClose={() => setShowEmergencyModal(false)}
+        currentCity={currentCity}
+        cityData={cityData}
         showToast={showToast}
       />
 
-      {/* Feedback & Suggestion Modal */}
-      <FeedbackModal
-        isOpen={showFeedbackModal}
-        onClose={() => setShowFeedbackModal(false)}
-        user={user}
+      <StoryPassModal
+        isOpen={showStoryPassModal}
+        onClose={() => setShowStoryPassModal(false)}
+        currentCity={currentCity}
         showToast={showToast}
       />
 
-      {/* Toast Notifications */}
-      <Toast toasts={toasts} onDismiss={dismissToast} />
+      {/* Toast Notification Portal */}
+      <div className="toast-portal">
+        {toasts.map((toast) => (
+          <Toast key={toast.id} toast={toast} onDismiss={() => dismissToast(toast.id)} />
+        ))}
+      </div>
     </div>
   );
 }

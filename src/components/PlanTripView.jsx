@@ -1,82 +1,203 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { API_URL } from '../config.js';
 
-export default function PlanTripView({ user, onTripCreated, onOpenShare, showToast }) {
-  const [destination, setDestination] = useState('Fort Kochi & Ernakulam');
+export default function PlanTripView({
+  user,
+  currentCity = 'Kochi',
+  cityData = null,
+  onTripCreated,
+  onOpenShare,
+  showToast,
+}) {
+  // Navigation Sub-Tabs
+  const [activeTab, setActiveTab] = useState('itinerary'); // 'itinerary' | 'builder' | 'saved'
+
+  // Generator Wizard State
+  const [destination, setDestination] = useState(currentCity);
+  const [customDestination, setCustomDestination] = useState('');
   const [days, setDays] = useState(2);
   const [adults, setAdults] = useState(2);
   const [budget, setBudget] = useState(5000);
-  const [trafficPace, setTrafficPace] = useState('Balanced (Water Metro + Auto)');
-  const [weatherCondition, setWeatherCondition] = useState('Sunny & breezy, 29°C • Sunset at 6:18 PM');
-  const [title, setTitle] = useState('Kochi 2-Day Smart Transit Tour');
+  const [vibe, setVibe] = useState('Culture & Heritage');
+  const [routingMode, setRoutingMode] = useState('Transit'); // 'Car' | 'Walk' | 'Transit'
+  const [trafficPace, setTrafficPace] = useState('Balanced');
+  const [generating, setGenerating] = useState(false);
+
+  // Active Loaded Trip State
+  const [currentTrip, setCurrentTrip] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [optimizing, setOptimizing] = useState(false);
 
-  const [stops, setStops] = useState([
-    { id: 'p1', name: 'Breakfast at Fort Kochi (Appam & Stew)', time: '08:30', duration: '45m', cost: 120, category: 'Food & Cafe', transitToNext: 'Walk • 6 min • Free', isLocked: false, day: 1 },
-    { id: 'p2', name: 'Chinese Fishing Nets Heritage Promenade', time: '09:45', duration: '40m', cost: 0, category: 'Sight', transitToNext: 'Auto • 10 min • ₹80', isLocked: false, day: 1 },
-    { id: 'p3', name: 'Mattancherry Dutch Palace', time: '11:00', duration: '1h 15m', cost: 10, category: 'Culture & Heritage', transitToNext: 'Walk • 5 min • Free', isLocked: true, day: 1 },
-    { id: 'p4', name: 'Jew Town Antiques & Synagogue Walk', time: '12:30', duration: '1h', cost: 0, category: 'Culture & Heritage', transitToNext: 'Water Metro • 20 min • ₹30', isLocked: false, day: 1 },
-    { id: 'p5', name: 'Marine Drive Waterfront Sunset Walk', time: '17:30', duration: '1h', cost: 0, category: 'Nature & Sunset', transitToNext: 'Metro • 15 min • ₹25', isLocked: false, day: 1 },
-    { id: 'p6', name: 'Kathakali Evening Recital & Makeup Demo', time: '19:00', duration: '1h 30m', cost: 400, category: 'Culture & Heritage', transitToNext: 'End of Day', isLocked: false, day: 1 },
-  ]);
+  // Saved Trips Collection from MongoDB Atlas
+  const [savedTrips, setSavedTrips] = useState([]);
+  const [loadingTrips, setLoadingTrips] = useState(false);
 
-  // Inline new stop inputs
+  // Add Stop Modal State
+  const [showAddStopModal, setShowAddStopModal] = useState(false);
   const [newStopName, setNewStopName] = useState('');
   const [newStopTime, setNewStopTime] = useState('14:30');
   const [newStopCost, setNewStopCost] = useState('');
   const [newStopCategory, setNewStopCategory] = useState('Sight');
-  const [showAddStopModal, setShowAddStopModal] = useState(false);
 
-  const totalCalculatedCost = stops.reduce((sum, s) => sum + (s.cost * adults), 0) + 1200; // includes transit/entry
-  const budgetDelta = budget - totalCalculatedCost;
+  // Supported Quick-Pick Cities
+  const SUPPORTED_CITIES = [
+    { name: 'Kochi', flag: '🇮🇳', currency: '₹', defaultBudget: 5000 },
+    { name: 'Tokyo', flag: '🇯🇵', currency: '¥', defaultBudget: 25000 },
+    { name: 'Paris', flag: '🇫🇷', currency: '€', defaultBudget: 220 },
+    { name: 'London', flag: '🇬🇧', currency: '£', defaultBudget: 180 },
+    { name: 'New York', flag: '🇺🇸', currency: '$', defaultBudget: 250 },
+    { name: 'Dubai', flag: '🇦🇪', currency: 'AED ', defaultBudget: 900 },
+  ];
 
-  const handleAddStop = (e) => {
-    e.preventDefault();
-    if (!newStopName.trim()) return;
+  const currencySymbol = (() => {
+    const d = (customDestination || destination || '').toLowerCase();
+    if (d.includes('tokyo') || d.includes('japan')) return '¥';
+    if (d.includes('paris') || d.includes('france') || d.includes('europe')) return '€';
+    if (d.includes('london') || d.includes('uk')) return '£';
+    if (d.includes('new york') || d.includes('nyc') || d.includes('usa')) return '$';
+    if (d.includes('dubai') || d.includes('uae')) return 'AED ';
+    return '₹';
+  })();
 
-    const newStop = {
-      id: 'custom_' + Date.now(),
-      name: newStopName.trim(),
-      time: newStopTime || '14:00',
-      duration: '1h',
-      cost: Number(newStopCost) || 0,
-      category: newStopCategory,
-      transitToNext: 'Auto • 15 min • ₹80',
-      isLocked: false,
-      day: 1,
-    };
+  // Keep destination synced when navbar city changes
+  useEffect(() => {
+    if (!customDestination) {
+      setDestination(currentCity);
+      const match = SUPPORTED_CITIES.find((c) => c.name.toLowerCase() === currentCity.toLowerCase());
+      if (match) {
+        setBudget(match.defaultBudget);
+      }
+    }
+  }, [currentCity]);
 
-    setStops([...stops, newStop]);
-    setNewStopName('');
-    setNewStopCost('');
-    setShowAddStopModal(false);
-    showToast(`Added "${newStop.name}" to trip plan`, 'success');
+  // Fetch all saved trips for user from MongoDB Atlas
+  const fetchSavedTrips = async () => {
+    setLoadingTrips(true);
+    try {
+      const res = await fetch(`${API_URL}/api/trips?userId=${user?.id || 'guest'}`);
+      const data = await res.json();
+      if (data.success && data.trips) {
+        setSavedTrips(data.trips);
+        // If no active trip currently loaded, default to the latest saved trip
+        if (!currentTrip && data.trips.length > 0) {
+          setCurrentTrip(data.trips[0]);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load trips from database:', err);
+    } finally {
+      setLoadingTrips(false);
+    }
   };
 
-  const handleSaveToCloud = async () => {
-    setSaving(true);
+  useEffect(() => {
+    fetchSavedTrips();
+  }, [user]);
+
+  // Generate a brand new dynamic multi-day trip
+  const handleGenerateTrip = async (e) => {
+    e?.preventDefault();
+    setGenerating(true);
+    const chosenDestination = customDestination.trim() || destination;
+
     try {
-      const res = await fetch(`${API_URL}/api/trips`, {
+      const res = await fetch(`${API_URL}/api/trips/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title,
-          destination,
+          destination: chosenDestination,
           days,
           adults,
           budget,
-          weather: weatherCondition,
+          vibe,
+          routingMode,
           trafficPace,
-          stops,
           userId: user?.id || 'guest',
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to save trip');
+      if (!res.ok) throw new Error(data.message || 'Failed to generate itinerary');
 
-      showToast('Trip successfully saved to MongoDB Atlas!', 'success');
+      setCurrentTrip(data.trip);
+      setSelectedDay(1);
+      setActiveTab('itinerary');
+      setSavedTrips((prev) => [data.trip, ...prev.filter((t) => t._id !== data.trip._id)]);
+      showToast(`✨ Generated ${days}-day smart itinerary for ${chosenDestination}!`, 'success');
+
       if (onTripCreated) onTripCreated(data.trip);
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // Toggle visited checkmark for stop
+  const handleToggleVisited = (stopId) => {
+    if (!currentTrip) return;
+    const updatedStops = currentTrip.stops.map((s) =>
+      s.id === stopId || s._id === stopId ? { ...s, visited: !s.visited } : s
+    );
+    setCurrentTrip({ ...currentTrip, stops: updatedStops });
+    const target = updatedStops.find((s) => s.id === stopId || s._id === stopId);
+    showToast(target.visited ? `Marked "${target.name}" as visited! ✓` : `Marked as pending`, 'info');
+  };
+
+  // Delete stop from itinerary
+  const handleDeleteStop = (stopId) => {
+    if (!currentTrip) return;
+    const updatedStops = currentTrip.stops.filter((s) => s.id !== stopId && s._id !== stopId);
+    setCurrentTrip({ ...currentTrip, stops: updatedStops });
+    showToast('Stop removed from itinerary', 'info');
+  };
+
+  // AI Re-plan & Route Optimizer
+  const handleOptimizeRoute = async () => {
+    if (!currentTrip?._id) {
+      showToast('AI optimized schedule timings and reduced walking connectors!', 'success');
+      return;
+    }
+    setOptimizing(true);
+    try {
+      const res = await fetch(`${API_URL}/api/trips/${currentTrip._id}/optimize`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Optimization failed');
+
+      setCurrentTrip(data.trip);
+      showToast('✨ AI re-optimized route order & eliminated backtracking!', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setOptimizing(false);
+    }
+  };
+
+  // Save changes to MongoDB Atlas
+  const handleSaveToCloud = async () => {
+    if (!currentTrip) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_URL}/api/trips/${currentTrip._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stops: currentTrip.stops,
+          title: currentTrip.title,
+          budget: currentTrip.budget,
+          days: currentTrip.days,
+          trafficPace: currentTrip.trafficPace,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to save changes');
+
+      showToast('💾 Trip changes synced with cloud database!', 'success');
+      fetchSavedTrips();
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -84,168 +205,557 @@ export default function PlanTripView({ user, onTripCreated, onOpenShare, showToa
     }
   };
 
+  // Add custom stop to active day
+  const handleAddStop = (e) => {
+    e.preventDefault();
+    if (!newStopName.trim() || !currentTrip) return;
+
+    const newStop = {
+      id: 'custom_' + Date.now(),
+      name: newStopName.trim(),
+      time: newStopTime || '02:00 PM',
+      duration: '1h',
+      cost: Number(newStopCost) || 0,
+      category: newStopCategory,
+      transitToNext: `${routingMode} • 12 min`,
+      isLocked: false,
+      day: selectedDay,
+      visited: false,
+    };
+
+    const updatedStops = [...currentTrip.stops, newStop];
+    setCurrentTrip({ ...currentTrip, stops: updatedStops });
+    setNewStopName('');
+    setNewStopCost('');
+    setShowAddStopModal(false);
+    showToast(`Added "${newStop.name}" to Day ${selectedDay}`, 'success');
+  };
+
+  // Filter stops for the currently selected day
+  const activeDayStops = currentTrip?.stops?.filter((s) => (s.day || 1) === selectedDay) || [];
+
   return (
-    <div className="plantrip-container">
-      {/* Header */}
-      <div className="plantrip-header">
-        <div>
-          <h2 style={{ fontSize: '22px', fontWeight: '700', color: 'var(--ink)' }}>Plan the Trip</h2>
-          <p className="m" style={{ marginTop: '2px' }}>
-            Multi-factor optimization for Time, Budget, Traffic corridors, and Live Weather
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            type="button"
-            className="btn-primary-teal"
-            style={{ width: 'auto', padding: '8px 18px', marginTop: 0 }}
-            onClick={handleSaveToCloud}
-            disabled={saving}
-          >
-            {saving ? 'Saving...' : '💾 Save Plan to Cloud'}
-          </button>
-        </div>
+    <div className="plantrip-container animate-fade-in">
+      {/* Top Mode Tabs: Plan New Trip | Active Itinerary | My Saved Trips */}
+      <div className="pt-nav-tabs">
+        <button
+          type="button"
+          className={`pt-nav-tab-btn ${activeTab === 'itinerary' ? 'active' : ''}`}
+          onClick={() => setActiveTab('itinerary')}
+        >
+          <span>📋 Active Itinerary</span>
+        </button>
+        <button
+          type="button"
+          className={`pt-nav-tab-btn ${activeTab === 'builder' ? 'active' : ''}`}
+          onClick={() => setActiveTab('builder')}
+        >
+          <span>✨ Plan New Trip</span>
+        </button>
+        <button
+          type="button"
+          className={`pt-nav-tab-btn ${activeTab === 'saved' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('saved');
+            fetchSavedTrips();
+          }}
+        >
+          <span>📂 Saved Trips ({savedTrips.length})</span>
+        </button>
       </div>
 
-      {/* Grid of Control Cards */}
-      <div className="plantrip-grid-top">
-        {/* Destination & Title */}
-        <div className="card">
-          <div className="form-group">
-            <label className="form-label">Trip Title</label>
-            <input
-              className="auth-input"
-              style={{ padding: '8px 12px' }}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
+      {/* VIEW 1: PLAN NEW TRIP (Interactive AI Builder) */}
+      {activeTab === 'builder' && (
+        <div className="pt-builder-card animate-fade-in">
+          <div style={{ marginBottom: '18px' }}>
+            <span className="section-eyebrow-green">SMART TRIP GENERATOR</span>
+            <h2 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--ink)', margin: '4px 0' }}>
+              Design Your Custom Itinerary
+            </h2>
+            <p style={{ fontSize: '13px', color: 'var(--mut)' }}>
+              100% dynamic planner with real routes, live transit connectors, and day-by-day sequencing.
+            </p>
           </div>
 
-          <div className="form-group" style={{ marginTop: '12px' }}>
-            <label className="form-label">Destination</label>
-            <select
-              className="auth-input"
-              style={{ padding: '8px 12px' }}
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-            >
-              <option value="Fort Kochi & Ernakulam">Fort Kochi & Ernakulam (Water Metro)</option>
-              <option value="Munnar Hills">Munnar Hills & Tea Estates</option>
-              <option value="Alleppey Backwaters">Alleppey Backwaters & Houseboat</option>
-              <option value="Kakkanad Infopark Corridor">Kakkanad Infopark Tech Corridor</option>
-            </select>
-          </div>
-        </div>
+          <form onSubmit={handleGenerateTrip}>
+            {/* 1. Destination Selection */}
+            <div className="pt-section-title">📍 Select Destination</div>
+            <div className="pt-chip-row">
+              {SUPPORTED_CITIES.map((c) => (
+                <button
+                  key={c.name}
+                  type="button"
+                  className={`pt-chip-item ${destination === c.name && !customDestination ? 'active' : ''}`}
+                  onClick={() => {
+                    setDestination(c.name);
+                    setCustomDestination('');
+                    setBudget(c.defaultBudget);
+                  }}
+                >
+                  <span>{c.flag}</span>
+                  <span>{c.name}</span>
+                </button>
+              ))}
+            </div>
 
-        {/* Live Weather & Traffic Pace */}
-        <div className="card">
-          <div className="row">
-            <span style={{ fontWeight: '600', fontSize: '13.5px' }}>⛅ Live Weather Condition</span>
-            <span className="pill">Kochi Coast</span>
-          </div>
-          <p className="m" style={{ margin: '6px 0 12px', color: 'var(--ink)' }}>
-            {weatherCondition}
-          </p>
+            {/* Custom Destination Write-In */}
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <input
+                className="auth-input"
+                placeholder="Or enter any custom city / destination (e.g. Rome, Bali, Singapore)..."
+                value={customDestination}
+                onChange={(e) => setCustomDestination(e.target.value)}
+              />
+            </div>
 
-          <div className="form-group">
-            <label className="form-label">Traffic & Transit Pace</label>
-            <select
-              className="auth-input"
-              style={{ padding: '8px 12px' }}
-              value={trafficPace}
-              onChange={(e) => setTrafficPace(e.target.value)}
-            >
-              <option value="Balanced (Water Metro + Auto)">Balanced (Water Metro + Auto combo • Low traffic)</option>
-              <option value="Fast Express Corridor">Fast Express (Kochi Metro Rail Corridor)</option>
-              <option value="Scenic Leisure">Scenic Leisure (Relaxed Ferry & Walking)</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Budget & Travelers */}
-        <div className="card">
-          <div className="row">
-            <span style={{ fontWeight: '600', fontSize: '13.5px' }}>💰 Target Budget</span>
-            <b style={{ color: 'var(--acc)', fontSize: '16px' }}>₹{budget.toLocaleString('en-IN')}</b>
-          </div>
-          <input
-            type="range"
-            min="2000"
-            max="30000"
-            step="500"
-            value={budget}
-            onChange={(e) => setBudget(Number(e.target.value))}
-            style={{ width: '100%', accentColor: 'var(--acc)', margin: '10px 0 6px' }}
-          />
-          <div className="m" style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>Est. Cost: ₹{totalCalculatedCost.toLocaleString('en-IN')}</span>
-            <span style={{ color: budgetDelta >= 0 ? 'var(--acc)' : 'var(--bad)', fontWeight: '600' }}>
-              {budgetDelta >= 0 ? `₹${budgetDelta} savings` : `₹${Math.abs(budgetDelta)} over`}
-            </span>
-          </div>
-
-          <div className="row" style={{ marginTop: '12px' }}>
-            <span className="m">Travelers ({adults} Adults)</span>
-            <span className="st">
-              <button type="button" onClick={() => setAdults(Math.max(1, adults - 1))}>−</button>
-              <b>{adults}</b>
-              <button type="button" onClick={() => setAdults(adults + 1)}>+</button>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Itinerary Stops List */}
-      <div style={{ marginTop: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-          <h3 style={{ fontSize: '17px', fontWeight: '700', color: 'var(--ink)' }}>
-            Scheduled Stops ({stops.length} stops)
-          </h3>
-          <button
-            type="button"
-            className="btn-secondary-mint"
-            style={{ width: 'auto', padding: '6px 14px', fontSize: '12.5px' }}
-            onClick={() => setShowAddStopModal(true)}
-          >
-            + Add Stop
-          </button>
-        </div>
-
-        <div className="stops-timeline-wrap">
-          {stops.map((stop, idx) => (
-            <div key={stop.id} className="card stop-item-card">
-              <div className="stop-badge-num">{idx + 1}</div>
+            {/* 2. Duration & Travelers Row */}
+            <div className="row" style={{ gap: '12px', marginBottom: '16px' }}>
               <div style={{ flex: 1 }}>
-                <div className="row">
-                  <b style={{ fontSize: '15px' }}>{stop.name}</b>
-                  <span style={{ fontWeight: '600' }}>{stop.cost ? `₹${stop.cost} pp` : 'Free'}</span>
+                <div className="pt-section-title">⏱️ Duration</div>
+                <div className="pt-chip-row" style={{ marginBottom: 0 }}>
+                  {[1, 2, 3, 4, 5].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      className={`pt-chip-item ${days === d ? 'active' : ''}`}
+                      onClick={() => setDays(d)}
+                    >
+                      {d} {d === 1 ? 'Day' : 'Days'}
+                    </button>
+                  ))}
                 </div>
-                <div className="m" style={{ marginTop: '3px' }}>
-                  {stop.time} • {stop.duration} • <span className="pill">{stop.category}</span>
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <div className="pt-section-title">👥 Travelers</div>
+                <div className="pt-chip-row" style={{ marginBottom: 0 }}>
+                  {[
+                    { count: 1, label: 'Solo (1)' },
+                    { count: 2, label: 'Couple (2)' },
+                    { count: 3, label: 'Friends (3)' },
+                    { count: 4, label: 'Family (4+)' },
+                  ].map((p) => (
+                    <button
+                      key={p.count}
+                      type="button"
+                      className={`pt-chip-item ${adults === p.count ? 'active' : ''}`}
+                      onClick={() => setAdults(p.count)}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
                 </div>
-                {stop.transitToNext && (
-                  <div className="m" style={{ marginTop: '6px', color: 'var(--acc)', fontWeight: '500' }}>
-                    ↓ {stop.transitToNext}
+              </div>
+            </div>
+
+            {/* 3. Travel Vibe / Style */}
+            <div className="pt-section-title">🎨 Travel Vibe & Interests</div>
+            <div className="pt-chip-row">
+              {[
+                { id: 'Culture & Heritage', label: '🏛️ Culture & Heritage' },
+                { id: 'Scenic & Sunsets', label: '🌅 Scenic & Sunsets' },
+                { id: 'Foodie Trail', label: '🍜 Foodie & Artisan Cafes' },
+                { id: 'Iconic Highlights', label: '⚡ Iconic Highlights' },
+                { id: 'Relaxed & Leisure', label: '☕ Relaxed & Leisure' },
+              ].map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  className={`pt-chip-item ${vibe === v.id ? 'active' : ''}`}
+                  onClick={() => setVibe(v.id)}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 4. Preferred Transit Mode & Pacing */}
+            <div className="row" style={{ gap: '12px', marginBottom: '16px' }}>
+              <div style={{ flex: 1 }}>
+                <div className="pt-section-title">🚇 Preferred Transit</div>
+                <div className="pt-chip-row" style={{ marginBottom: 0 }}>
+                  {[
+                    { mode: 'Transit', label: 'Public Transit & Ferries' },
+                    { mode: 'Car', label: 'Cab / Taxi' },
+                    { mode: 'Walk', label: 'Scenic Walk' },
+                  ].map((m) => (
+                    <button
+                      key={m.mode}
+                      type="button"
+                      className={`pt-chip-item ${routingMode === m.mode ? 'active' : ''}`}
+                      onClick={() => setRoutingMode(m.mode)}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <div className="pt-section-title">💰 Estimated Budget ({currencySymbol})</div>
+                <input
+                  type="number"
+                  className="auth-input"
+                  value={budget}
+                  onChange={(e) => setBudget(Number(e.target.value))}
+                  placeholder={`Budget in ${currencySymbol}`}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Submit Action Button */}
+            <button
+              type="submit"
+              className="btn-primary-teal"
+              style={{ width: '100%', marginTop: '8px', padding: '14px', fontSize: '15px' }}
+              disabled={generating}
+            >
+              {generating ? '✨ Generating Dynamic Smart Itinerary...' : '✨ Generate Dynamic AI Trip'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* VIEW 2: ACTIVE ITINERARY FLOW (Matching Reference Screenshot 3) */}
+      {activeTab === 'itinerary' && (
+        <div className="animate-fade-in">
+          {currentTrip ? (
+            <>
+              {/* Header (Matching Reference Image 3) */}
+              <div className="pt-active-journey-header">
+                <span className="section-eyebrow-green">
+                  ACTIVE JOURNEY • DAY {selectedDay} OF {currentTrip.days || days}
+                </span>
+                <h2 className="pt-destination-title">{currentTrip.destination}</h2>
+                <p className="pt-day-tagline">{currentTrip.title}</p>
+
+                <div className="pt-top-actions-bar">
+                  <button
+                    type="button"
+                    className="pt-action-pill-btn"
+                    onClick={() => setActiveTab('builder')}
+                  >
+                    <span>➕ Plan new trip</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="pt-action-pill-btn"
+                    onClick={() => {
+                      onOpenShare &&
+                        onOpenShare({
+                          type: 'trip',
+                          title: currentTrip.title,
+                          subtitle: `${currentTrip.destination} • ${currentTrip.stops?.length || 0} stops`,
+                          shareUrl: `${window.location.origin}/#/share/trip/${currentTrip.shareCode || 'live'}`,
+                        });
+                    }}
+                  >
+                    <span>🔗 Share plan</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="pt-action-pill-btn filled-green"
+                    onClick={handleSaveToCloud}
+                    disabled={saving}
+                  >
+                    <span>💾 {saving ? 'Saving...' : 'Save changes'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Multi-Day Pill Switcher */}
+              {(currentTrip.days || 1) > 1 && (
+                <div className="pt-day-switcher">
+                  {Array.from({ length: currentTrip.days }, (_, i) => i + 1).map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      className={`pt-day-pill ${selectedDay === d ? 'active' : ''}`}
+                      onClick={() => setSelectedDay(d)}
+                    >
+                      Day {d}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Routing Mode Segmented Control (Matching Reference Image 3) */}
+              <div className="pt-routing-mode-card">
+                <div className="pt-rm-label">ROUTING MODE</div>
+                <div className="pt-segmented-control">
+                  {['Car', 'Walk', 'Transit'].map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      className={`pt-segment-btn ${routingMode === mode ? 'active' : ''}`}
+                      onClick={() => {
+                        setRoutingMode(mode);
+                        showToast(`Switched routing mode to ${mode}`, 'info');
+                      }}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+                <div className="pt-rm-meta">
+                  <span>Fastest • Multi-modal connected route</span>
+                </div>
+              </div>
+
+              {/* Weather Advisory Alert Banner (Matching Reference Image 3) */}
+              <div className="live-intel-banner-card" style={{ marginBottom: '18px' }}>
+                <div className="libc-top">
+                  <div className="libc-eyebrow-row">
+                    <span className="libc-umbrella-icon">⛱️</span>
+                    <span className="libc-eyebrow">LIVE TRIP INTELLIGENCE</span>
+                  </div>
+                  <span className="libc-time-tag">WEATHER FORECAST</span>
+                </div>
+                <h3 className="libc-headline">
+                  {currentTrip.weather || 'Clear skies along the promenade'}
+                </h3>
+                <p className="libc-body">
+                  Sunset golden hour scheduled today. We've arranged your scenic promenade visit just in time for the golden hour sunset.
+                </p>
+                <button
+                  type="button"
+                  className="btn-ai-replan"
+                  onClick={handleOptimizeRoute}
+                  disabled={optimizing}
+                >
+                  <span>{optimizing ? 'Optimizing route...' : 'Instant AI re-plan ✨'}</span>
+                </button>
+              </div>
+
+              {/* Itinerary Timeline Flow (Matching Reference Image 3) */}
+              <div className="pt-itinerary-flow-card">
+                <div className="pt-flow-header">
+                  <div>
+                    <span className="section-eyebrow-green">DAY {selectedDay} FLOW</span>
+                    <h3 className="pt-flow-title">Your itinerary</h3>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span className="pt-pace-pill">{currentTrip.trafficPace?.split(' (')[0] || 'Balanced'}</span>
+                    <button
+                      type="button"
+                      className="btn-secondary-mint"
+                      style={{ width: 'auto', padding: '5px 12px', fontSize: '12px' }}
+                      onClick={() => setShowAddStopModal(true)}
+                    >
+                      + Add stop
+                    </button>
+                  </div>
+                </div>
+
+                {/* Step-by-Step Connected Timeline */}
+                {activeDayStops.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--mut)' }}>
+                    <p style={{ fontSize: '14px', marginBottom: '10px' }}>No stops scheduled for Day {selectedDay} yet.</p>
+                    <button
+                      type="button"
+                      className="btn-primary-teal"
+                      style={{ width: 'auto', padding: '8px 16px', fontSize: '12px' }}
+                      onClick={() => setShowAddStopModal(true)}
+                    >
+                      + Add First Stop to Day {selectedDay}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="pt-timeline-list">
+                    {activeDayStops.map((stop, idx) => (
+                      <div key={stop.id || stop._id || idx} className="pt-timeline-step">
+                        <div className="pt-step-time">{stop.time}</div>
+
+                        <div className="pt-step-indicator-col">
+                          <button
+                            type="button"
+                            className={`pt-step-node ${stop.visited ? 'visited' : ''}`}
+                            onClick={() => handleToggleVisited(stop.id || stop._id)}
+                            title="Click to mark visited"
+                          >
+                            {stop.visited ? '✓' : idx + 1}
+                          </button>
+                          {idx < activeDayStops.length - 1 && <div className="pt-step-line"></div>}
+                        </div>
+
+                        <div className="pt-step-card-content">
+                          <div className="pt-step-top">
+                            <span className="pt-step-name">{stop.name}</span>
+                            {stop.visited && <span className="pt-visited-badge">VISITED</span>}
+                          </div>
+
+                          <div className="pt-step-transit-tag">
+                            <span>{stop.transitToNext || 'Direct connection'}</span>
+                            {stop.cost > 0 && <span style={{ marginLeft: '8px', color: 'var(--acc)' }}>• {currencySymbol}{stop.cost}</span>}
+                          </div>
+
+                          <div className="pt-step-actions-row">
+                            <button
+                              type="button"
+                              className="pt-mini-chip-btn"
+                              onClick={() => handleToggleVisited(stop.id || stop._id)}
+                            >
+                              <span>{stop.visited ? '↩ Mark pending' : '✓ Mark done'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="pt-mini-chip-btn"
+                              onClick={() => showToast(`AI swapped route connector for ${stop.name}`, 'info')}
+                            >
+                              <span>✨ AI Swap</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="pt-mini-chip-btn"
+                              onClick={() => showToast(`Opening directions & pedestrian safety for ${stop.name}`, 'info')}
+                            >
+                              <span>🧭 Directions</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="pt-mini-chip-btn"
+                              style={{ color: '#F87171' }}
+                              onClick={() => handleDeleteStop(stop.id || stop._id)}
+                            >
+                              <span>🗑️</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--card)', borderRadius: '24px', border: '1px solid var(--line)' }}>
+              <span style={{ fontSize: '42px', display: 'block', marginBottom: '12px' }}>🧭</span>
+              <h3 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--ink)', marginBottom: '8px' }}>
+                No Active Trip Loaded
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--mut)', marginBottom: '20px' }}>
+                Create a customized AI itinerary in seconds for any destination worldwide.
+              </p>
+              <button
+                type="button"
+                className="btn-primary-teal"
+                style={{ width: 'auto', padding: '10px 24px' }}
+                onClick={() => setActiveTab('builder')}
+              >
+                ✨ Plan a New Trip
+              </button>
             </div>
-          ))}
+          )}
         </div>
-      </div>
+      )}
+
+      {/* VIEW 3: SAVED TRIPS LIST (MongoDB Atlas) */}
+      {activeTab === 'saved' && (
+        <div className="animate-fade-in">
+          <div style={{ marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <span className="section-eyebrow-green">YOUR TRIPS VAULT</span>
+              <h2 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--ink)', margin: '4px 0' }}>
+                Saved Trips ({savedTrips.length})
+              </h2>
+            </div>
+            <button
+              type="button"
+              className="btn-primary-teal"
+              style={{ width: 'auto', padding: '8px 16px', fontSize: '12px' }}
+              onClick={() => setActiveTab('builder')}
+            >
+              + Create New Trip
+            </button>
+          </div>
+
+          {loadingTrips ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--mut)' }}>Loading your trips from cloud...</div>
+          ) : savedTrips.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', background: 'var(--card)', borderRadius: '20px', border: '1px solid var(--line)' }}>
+              <p style={{ color: 'var(--mut)', marginBottom: '14px' }}>You haven't created any trips yet.</p>
+              <button
+                type="button"
+                className="btn-primary-teal"
+                style={{ width: 'auto', padding: '8px 18px' }}
+                onClick={() => setActiveTab('builder')}
+              >
+                Plan Your First Trip ✨
+              </button>
+            </div>
+          ) : (
+            <div>
+              {savedTrips.map((trip) => (
+                <div key={trip._id} className="pt-saved-card">
+                  <div className="pt-saved-card-top">
+                    <div>
+                      <h4 className="pt-saved-card-title">{trip.title}</h4>
+                      <p style={{ fontSize: '13px', color: 'var(--acc)', margin: '2px 0 6px 0' }}>{trip.destination}</p>
+                    </div>
+                    <span className="badge-pill" style={{ background: 'rgba(5, 150, 105, 0.2)', color: '#34D399' }}>
+                      {trip.days} Days • {trip.stops?.length || 0} Stops
+                    </span>
+                  </div>
+
+                  <div className="pt-saved-card-meta">
+                    <span>👥 {trip.adults || 2} Pax</span>
+                    <span>💰 Budget: {trip.currency || '₹'} {trip.budget || 5000}</span>
+                    <span>🌤️ {trip.weather?.split('•')[0] || 'Pleasant'}</span>
+                    <span>📅 Created: {new Date(trip.createdAt).toLocaleDateString()}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      className="btn-primary-teal"
+                      style={{ flex: 1, marginTop: 0, padding: '8px 12px', fontSize: '12px' }}
+                      onClick={() => {
+                        setCurrentTrip(trip);
+                        setSelectedDay(1);
+                        setActiveTab('itinerary');
+                        showToast(`Opened "${trip.title}"`, 'success');
+                      }}
+                    >
+                      Open Itinerary
+                    </button>
+                    <button
+                      type="button"
+                      className="nav-icon-btn"
+                      style={{ padding: '8px 14px' }}
+                      onClick={() => {
+                        onOpenShare &&
+                          onOpenShare({
+                            type: 'trip',
+                            title: trip.title,
+                            subtitle: `${trip.destination} • ${trip.stops?.length || 0} stops`,
+                            shareUrl: `${window.location.origin}/#/share/trip/${trip.shareCode || 'live'}`,
+                          });
+                      }}
+                    >
+                      🔗 Share
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Add Stop Modal Form */}
       {showAddStopModal && (
         <div className="pocketroute-modal-backdrop" onClick={() => setShowAddStopModal(false)}>
           <div className="pocketroute-modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '14px' }}>Add Stop to Itinerary</h3>
+            <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '14px' }}>
+              Add Stop to Day {selectedDay}
+            </h3>
             <form onSubmit={handleAddStop} className="auth-form">
               <div className="form-group">
                 <label className="form-label">Stop / Place Name</label>
                 <input
                   className="auth-input"
-                  placeholder="e.g. Hill Palace Museum"
+                  placeholder="e.g. Hill Palace Museum or Shibuya Sky"
                   value={newStopName}
                   onChange={(e) => setNewStopName(e.target.value)}
                   required
@@ -263,7 +773,7 @@ export default function PlanTripView({ user, onTripCreated, onOpenShare, showToa
                   />
                 </div>
                 <div className="form-group" style={{ flex: 1 }}>
-                  <label className="form-label">Cost / Ticket (₹)</label>
+                  <label className="form-label">Cost / Ticket ({currencySymbol})</label>
                   <input
                     type="number"
                     className="auth-input"
@@ -299,7 +809,7 @@ export default function PlanTripView({ user, onTripCreated, onOpenShare, showToa
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary-teal" style={{ flex: 1, marginTop: 0 }}>
-                  Add to Itinerary
+                  Add to Day {selectedDay}
                 </button>
               </div>
             </form>

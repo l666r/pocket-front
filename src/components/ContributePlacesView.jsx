@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL } from '../config.js';
+import { getEntityImage } from '../visualAssets.js';
 
 export default function ContributePlacesView({ user, showToast }) {
   const [places, setPlaces] = useState([]);
@@ -13,6 +14,7 @@ export default function ContributePlacesView({ user, showToast }) {
   const [category, setCategory] = useState('Sight');
   const [area, setArea] = useState('Fort Kochi');
   const [address, setAddress] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [entryFee, setEntryFee] = useState('');
   const [bestTime, setBestTime] = useState('Evening (5:00 PM – 7:00 PM)');
   const [description, setDescription] = useState('');
@@ -58,6 +60,25 @@ export default function ContributePlacesView({ user, showToast }) {
     }
   };
 
+  const handleRatePlace = async (id, rating) => {
+    try {
+      const res = await fetch(`${API_URL}/api/places/${id}/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, userName: user?.name || 'Explorer' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPlaces((prev) =>
+          prev.map((p) => (p._id === id ? { ...p, rating: data.rating, ratingCount: data.ratingCount } : p))
+        );
+        showToast(`Rated ${rating} stars! Thank you for reviewing.`, 'success');
+      }
+    } catch (err) {
+      showToast('Error saving rating', 'error');
+    }
+  };
+
   const handleAddPlace = async (e) => {
     e.preventDefault();
     if (!name.trim() || !area.trim() || !description.trim()) {
@@ -75,10 +96,12 @@ export default function ContributePlacesView({ user, showToast }) {
           category,
           area: area.trim(),
           address: address.trim(),
+          imageUrl: imageUrl.trim(),
           entryFee: Number(entryFee) || 0,
           bestTime,
           description: description.trim(),
           contributedBy: user?.name || 'Local Community Explorer',
+          rating: 5,
         }),
       });
 
@@ -88,6 +111,7 @@ export default function ContributePlacesView({ user, showToast }) {
       showToast(`Added "${name}" to community places!`, 'success');
       setName('');
       setAddress('');
+      setImageUrl('');
       setEntryFee('');
       setDescription('');
       setShowAddModal(false);
@@ -173,17 +197,47 @@ export default function ContributePlacesView({ user, showToast }) {
         </div>
       ) : (
         <div className="g3">
-          {places.map((place) => (
-            <div key={place._id} className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+          {places.map((place, idx) => {
+            const photoUrl = place.imageUrl || getEntityImage(place, 'cafes', idx);
+            return (
+              <div key={place._id} className="card place-community-card" style={{ display: 'flex', flexDirection: 'column' }}>
+                <div className="pcc-img-wrap" style={{ height: '140px', overflow: 'hidden', borderRadius: '8px', marginBottom: '10px' }}>
+                  <img
+                    src={photoUrl}
+                    alt={place.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
               <div className="row">
                 <b style={{ fontSize: '15px' }}>{place.name}</b>
                 <span className="pill">{place.category}</span>
               </div>
 
-              <div className="m" style={{ margin: '4px 0 10px' }}>
+              <div className="m" style={{ margin: '4px 0 8px' }}>
                 📍 {place.area}{place.address ? ` • ${place.address}` : ''}
                 <br />
                 {place.entryFee === 0 ? 'Free entry' : `₹${place.entryFee} entry fee`} • {place.bestTime}
+              </div>
+
+              {/* Star Rating Bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', margin: '4px 0 8px' }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <span
+                    key={star}
+                    style={{
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      color: star <= Math.round(place.rating || 5) ? '#E5A93C' : 'var(--faint)',
+                    }}
+                    onClick={() => handleRatePlace(place._id, star)}
+                    title={`Rate this place ${star} stars`}
+                  >
+                    ★
+                  </span>
+                ))}
+                <span className="m" style={{ fontSize: '12px', marginLeft: '4px' }}>
+                  ({place.rating || 4.8} / 5 • {place.ratingCount || 1} reviews)
+                </span>
               </div>
 
               <p className="m" style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--ink)', flex: 1, marginBottom: '14px' }}>
@@ -205,7 +259,8 @@ export default function ContributePlacesView({ user, showToast }) {
                 </button>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       )}
 
@@ -279,6 +334,16 @@ export default function ContributePlacesView({ user, showToast }) {
                   placeholder="e.g. Calvathy Road, Near Customs Jetty"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Photo Image URL (Optional)</label>
+                <input
+                  className="auth-input"
+                  placeholder="https://images.unsplash.com/... or web image link"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
                 />
               </div>
 

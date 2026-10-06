@@ -132,6 +132,33 @@ export default function RearrangeTripView({ user, onOpenShare, showToast }) {
     }
   };
 
+  const [optimizing, setOptimizing] = useState(false);
+
+  const handleAiOptimize = async () => {
+    if (!selectedTrip || !selectedTrip._id) {
+      showToast('Please select a trip to optimize', 'warning');
+      return;
+    }
+    setOptimizing(true);
+    try {
+      const res = await fetch(`${API_URL}/api/trips/${selectedTrip._id}/optimize`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSelectedTrip(data.trip);
+        setTrips((prev) => prev.map((t) => (t._id === data.trip._id ? data.trip : t)));
+        showToast('✨ Route re-ordered with AI! Backtracking eliminated and transit times optimized.', 'success');
+      } else {
+        showToast(data.message || 'Optimization failed', 'error');
+      }
+    } catch (err) {
+      showToast('Error connecting to AI optimizer', 'error');
+    } finally {
+      setOptimizing(false);
+    }
+  };
+
   return (
     <div className="rearrange-container">
       {/* Header */}
@@ -139,18 +166,28 @@ export default function RearrangeTripView({ user, onOpenShare, showToast }) {
         <div>
           <h2 style={{ fontSize: '22px', fontWeight: '700', color: 'var(--ink)' }}>Re-Arrange your Trip</h2>
           <p className="m" style={{ marginTop: '2px' }}>
-            Modify stops, adjust times, re-order your schedule, or cancel planned trips
+            Modify stops, adjust times, re-order your schedule, or optimize route with AI
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn-prime"
+            style={{ width: 'auto', padding: '8px 16px', background: 'linear-gradient(135deg, #E5A93C, #D97706)' }}
+            onClick={handleAiOptimize}
+            disabled={optimizing}
+            title="Automatically reorders stops to minimize travel time & cost"
+          >
+            <span>{optimizing ? 'Optimizing Route...' : '✨ 1-Click AI Route Optimizer'}</span>
+          </button>
           <button
             type="button"
             className="nav-icon-btn"
             onClick={handleToggleFavorite}
             title="Favorite Trip"
           >
-            <span>{selectedTrip?.isFavorite ? '⭐ Favorited' : '☆ Add to Favorites'}</span>
+            <span>{selectedTrip?.isFavorite ? '❤️ Favorited' : '🤍 Add to Favorites'}</span>
           </button>
           <button
             type="button"
@@ -161,7 +198,7 @@ export default function RearrangeTripView({ user, onOpenShare, showToast }) {
                 type: 'trip',
                 title: selectedTrip.title,
                 subtitle: `${selectedTrip.destination} • ${selectedTrip.stops?.length || 0} stops`,
-                shareUrl: `http://localhost:3000/#/share/trip/${selectedTrip.shareCode}`,
+                shareUrl: `${window.location.origin}/#/share/trip/${selectedTrip.shareCode}`,
               });
             }}
           >
@@ -169,8 +206,8 @@ export default function RearrangeTripView({ user, onOpenShare, showToast }) {
           </button>
           <button
             type="button"
-            className="btn-primary-teal"
-            style={{ width: 'auto', padding: '8px 18px', marginTop: 0 }}
+            className="btn-prime"
+            style={{ width: 'auto', padding: '8px 18px' }}
             onClick={handleSaveRearranged}
             disabled={saving}
           >
