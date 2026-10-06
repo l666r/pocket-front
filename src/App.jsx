@@ -19,6 +19,7 @@ import FeedbackModal from './components/FeedbackModal.jsx';
 import EmergencyModal from './components/EmergencyModal.jsx';
 import StoryPassModal from './components/StoryPassModal.jsx';
 import SharedTripView from './components/SharedTripView.jsx';
+import Toast from './components/Toast.jsx';
 import { I18N } from './i18n.js';
 import { API_URL } from './config.js';
 import {

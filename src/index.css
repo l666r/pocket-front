@@ -7483,3 +7483,470 @@ button {
   gap: 12px;
   margin-bottom: 14px;
 }
+
+/* ===== AUTO LIGHT MODE OVERRIDES ===== */
+[data-theme='light'] .btn-subtle {
+  color: #A0620A;
+}
+
+[data-theme='light'] .input-field {
+  background: #F3F0E6;
+  color: #121F17;
+}
+
+[data-theme='light'] .city-select-dropdown {
+  background: #FFFFFF;
+  color: #121F17;
+}
+
+[data-theme='light'] .onboarding-card {
+  background: #FFFFFF;
+}
+
+[data-theme='light'] .onboarding-step-pill {
+  color: #A0620A;
+}
+
+[data-theme='light'] .onboarding-title {
+  color: #121F17;
+}
+
+[data-theme='light'] .onboarding-subtitle {
+  color: #5D7366;
+}
+
+[data-theme='light'] .sl-title {
+  color: #121F17;
+}
+
+[data-theme='light'] .sl-count {
+  color: #A0620A;
+}
+
+[data-theme='light'] .vibe-tile {
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .vt-check-circle {
+  color: #5D7366;
+}
+
+[data-theme='light'] .vt-label {
+  color: #121F17;
+}
+
+[data-theme='light'] .vt-desc {
+  color: #5D7366;
+}
+
+[data-theme='light'] .avoid-pill {
+  background: rgba(243, 240, 230, 0.5);
+  color: #2C3E33;
+}
+
+[data-theme='light'] .action-choice-card {
+  background: #FFFFFF;
+}
+
+[data-theme='light'] .tag-gold {
+  color: #A0620A;
+}
+
+[data-theme='light'] .acc-title {
+  color: #121F17;
+}
+
+[data-theme='light'] .acc-desc {
+  color: #2C3E33;
+}
+
+[data-theme='light'] .acc-action-hint {
+  color: #A0620A;
+}
+
+[data-theme='light'] .dynamic-dash-section {
+  background: #FFFFFF;
+}
+
+[data-theme='light'] .section-eyebrow {
+  color: #A0620A;
+}
+
+[data-theme='light'] .dds-title {
+  color: #121F17;
+}
+
+[data-theme='light'] .movie-visual-card {
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .mvc-title {
+  color: #121F17;
+}
+
+[data-theme='light'] .mvc-theater {
+  color: #5D7366;
+}
+
+[data-theme='light'] .showtime-chip {
+  color: #121F17;
+}
+
+[data-theme='light'] .cafe-visual-card {
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .cvc-name {
+  color: #121F17;
+}
+
+[data-theme='light'] .cvc-area {
+  color: #5D7366;
+}
+
+[data-theme='light'] .cvc-specialty {
+  color: #2C3E33;
+  background: rgba(243, 240, 230, 0.5);
+}
+
+[data-theme='light'] .cvc-specialty span {
+  color: #A0620A;
+}
+
+[data-theme='light'] .transit-visual-card {
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .tvc-name {
+  color: #121F17;
+}
+
+[data-theme='light'] .tvc-sub {
+  color: #5D7366;
+}
+
+[data-theme='light'] .tvc-scenic {
+  color: #A0620A;
+}
+
+[data-theme='light'] .star-icon {
+  color: #8FA196;
+}
+
+[data-theme='light'] .star-icon.gold {
+  color: #A0620A;
+}
+
+[data-theme='light'] .map-control-bar {
+  background: #FFFFFF;
+}
+
+[data-theme='light'] .mcb-city-name {
+  color: #121F17;
+}
+
+[data-theme='light'] .mcb-coords {
+  color: #5D7366;
+}
+
+[data-theme='light'] .mlp-btn {
+  background: #F3F0E6;
+  color: #2C3E33;
+}
+
+[data-theme='light'] .map-viewport-box {
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .rm-style-switch {
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .rm-style-btn {
+  color: #5D7366;
+}
+
+[data-theme='light'] .rm-icon-btn {
+  color: #121F17;
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .rm-icon-btn:hover {
+  color: #A0620A;
+}
+
+[data-theme='light'] .rm-icon-btn.active {
+  color: #A0620A;
+}
+
+[data-theme='light'] .rm-zoom-btn {
+  background: #F3F0E6;
+  color: #121F17;
+}
+
+[data-theme='light'] .rlm-body {
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .rlm-label {
+  color: #121F17;
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .rmp-rating {
+  background: #F3F0E6;
+  color: #A0620A;
+}
+
+[data-theme='light'] .rmp-title {
+  color: #121F17;
+}
+
+[data-theme='light'] .rmp-meta-strip {
+  color: #5D7366;
+}
+
+[data-theme='light'] .map-landmarks-strip {
+  background: #FFFFFF;
+}
+
+[data-theme='light'] .mls-title {
+  color: #A0620A;
+}
+
+[data-theme='light'] .mls-sub-hint {
+  color: #5D7366;
+}
+
+[data-theme='light'] .mls-mini-card {
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .mls-mini-name {
+  color: #121F17;
+}
+
+[data-theme='light'] .mls-mini-sub {
+  color: #5D7366;
+}
+
+[data-theme='light'] .transit-hero-box {
+  background: #FFFFFF;
+}
+
+[data-theme='light'] .thb-title {
+  color: #121F17;
+}
+
+[data-theme='light'] .thb-desc {
+  color: #5D7366;
+}
+
+[data-theme='light'] .thb-stat-pill {
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .tsp-num {
+  color: #A0620A;
+}
+
+[data-theme='light'] .tsp-label {
+  color: #5D7366;
+}
+
+[data-theme='light'] .transit-line-card {
+  background: #FFFFFF;
+}
+
+[data-theme='light'] .tlc-name {
+  color: #121F17;
+}
+
+[data-theme='light'] .tlc-route {
+  color: #5D7366;
+}
+
+[data-theme='light'] .td-label {
+  color: #5D7366;
+}
+
+[data-theme='light'] .td-val {
+  color: #121F17;
+}
+
+[data-theme='light'] .budget-summary-card {
+  background: #FFFFFF;
+}
+
+[data-theme='light'] .bsc-title {
+  color: #121F17;
+}
+
+[data-theme='light'] .bgs-label {
+  color: #5D7366;
+}
+
+[data-theme='light'] .budget-bar-track {
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .bm-label {
+  color: #5D7366;
+}
+
+[data-theme='light'] .bm-val {
+  color: #121F17;
+}
+
+[data-theme='light'] .subbox-title {
+  color: #121F17;
+}
+
+[data-theme='light'] .subbox-desc {
+  color: #5D7366;
+}
+
+[data-theme='light'] .ehl-title {
+  color: #A0620A;
+}
+
+[data-theme='light'] .expense-item-row {
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .eir-name {
+  color: #121F17;
+}
+
+[data-theme='light'] .eir-meta {
+  color: #5D7366;
+}
+
+[data-theme='light'] .eir-amount {
+  color: #A0620A;
+}
+
+[data-theme='light'] .traveler-chip {
+  color: #A0620A;
+}
+
+[data-theme='light'] .settlement-preview-box {
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .spb-title {
+  color: #121F17;
+}
+
+[data-theme='light'] .spb-tip {
+  color: #5D7366;
+}
+
+[data-theme='light'] .events-hero-box {
+  background: #FFFFFF;
+}
+
+[data-theme='light'] .ehb-title {
+  color: #121F17;
+}
+
+[data-theme='light'] .ehb-desc {
+  color: #5D7366;
+}
+
+[data-theme='light'] .cat-pill-btn {
+  background: #F3F0E6;
+  color: #2C3E33;
+}
+
+[data-theme='light'] .event-card {
+  background: #FFFFFF;
+}
+
+[data-theme='light'] .ec-title {
+  color: #121F17;
+}
+
+[data-theme='light'] .ec-meta-list {
+  color: #5D7366;
+}
+
+[data-theme='light'] .emergency-modal-card {
+  background: #FFFFFF;
+}
+
+[data-theme='light'] .emc-title {
+  color: #121F17;
+}
+
+[data-theme='light'] .emc-desc {
+  color: #5D7366;
+}
+
+[data-theme='light'] .emc-hotline-row {
+  background: #F3F0E6;
+}
+
+[data-theme='light'] .ehr-name {
+  color: #121F17;
+}
+
+[data-theme='light'] .ehr-num {
+  color: #A0620A;
+}
+
+[data-theme='light'] .emc-hospital-box {
+  background: rgba(243, 240, 230, 0.5);
+}
+
+[data-theme='light'] .ehb-subtitle {
+  color: #A0620A;
+}
+
+[data-theme='light'] .ehb-text {
+  color: #2C3E33;
+}
+
+[data-theme='light'] .t-avatar {
+  border: 1.5px solid #F3F0E6;
+}
+
+[data-theme='light'] .tint-mint {
+  color: #15803D;
+}
+
+[data-theme='light'] .tint-emerald {
+  color: #047857;
+}
+
+[data-theme='light'] .tint-gold {
+  color: #A0620A;
+}
+
+[data-theme='light'] .pt-pace-pill {
+  color: #15803D;
+}
+
+[data-theme='light'] .pt-visited-badge {
+  color: #047857;
+}
+
+[data-theme='light'] .pcp-top-tag {
+  color: #047857;
+}
+
+[data-theme='light'] .pcp-desc {
+  color: #2C3E33;
+}
+
+[data-theme='light'] .pcp-period {
+  color: #5D7366;
+}
+
+[data-theme='light'] .pcp-status-pill {
+  color: #047857;
+}
+
+[data-theme='light'] .pt-chip-item.active {
+  color: #047857;
+}
