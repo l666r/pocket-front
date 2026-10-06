@@ -7225,30 +7225,67 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   color: var(--mut);
   text-decoration: none;
-  padding: 6px 0;
+  padding: 8px 0;
   cursor: pointer;
   border: none;
   background: transparent;
-  transition: color 0.15s ease;
+  transition: all 0.2s ease;
+  position: relative;
 }
 .mba-tab.active {
-  color: #059669;
-  font-weight: 700;
+  color: #E5A93C;
 }
 [data-theme='dark'] .mba-tab.active {
-  color: #34D399;
+  color: #FBBF24;
 }
+
+/* Glowing Top Indicator Bar on Active Tab */
+.mba-tab.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 38px;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: #E5A93C;
+  box-shadow: 0 0 10px rgba(229, 169, 60, 0.85), 0 0 4px #FBBF24;
+}
+
 .mba-icon {
-  font-size: 20px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.mba-tab:active .mba-icon {
+  transform: scale(0.92);
+}
+.mba-tab.active .mba-icon {
+  transform: translateY(-1px);
+}
+.mba-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  transition: all 0.2s ease;
+}
+.mba-tab.active .mba-icon svg {
+  filter: drop-shadow(0 2px 8px rgba(229, 169, 60, 0.45));
 }
 .mba-label {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.2px;
+  line-height: 1.2;
+}
+.mba-tab.active .mba-label {
+  font-weight: 700;
+  color: #FBBF24;
 }
 
 /* Elevated Center Amber + Floating Pill Button */

@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL } from '../config.js';
+import {
+  IconSparkles,
+  IconPlus,
+  IconFolder,
+  IconItinerary,
+  IconShare,
+  IconSave,
+  IconCheck,
+  IconShuffle,
+  IconDirections,
+  IconTrash,
+} from './Icons.jsx';
 
 export default function PlanTripView({
   user,
@@ -243,14 +255,16 @@ export default function PlanTripView({
           className={`pt-nav-tab-btn ${activeTab === 'itinerary' ? 'active' : ''}`}
           onClick={() => setActiveTab('itinerary')}
         >
-          <span>📋 Active Itinerary</span>
+          <IconItinerary size={15} />
+          <span>Active Itinerary</span>
         </button>
         <button
           type="button"
           className={`pt-nav-tab-btn ${activeTab === 'builder' ? 'active' : ''}`}
           onClick={() => setActiveTab('builder')}
         >
-          <span>✨ Plan New Trip</span>
+          <IconSparkles size={15} />
+          <span>Plan New Trip</span>
         </button>
         <button
           type="button"
@@ -260,7 +274,8 @@ export default function PlanTripView({
             fetchSavedTrips();
           }}
         >
-          <span>📂 Saved Trips ({savedTrips.length})</span>
+          <IconFolder size={15} />
+          <span>Saved Trips ({savedTrips.length})</span>
         </button>
       </div>
 
@@ -436,7 +451,8 @@ export default function PlanTripView({
                     className="pt-action-pill-btn"
                     onClick={() => setActiveTab('builder')}
                   >
-                    <span>➕ Plan new trip</span>
+                    <IconPlus size={14} />
+                    <span>Plan new trip</span>
                   </button>
                   <button
                     type="button"
@@ -451,7 +467,8 @@ export default function PlanTripView({
                         });
                     }}
                   >
-                    <span>🔗 Share plan</span>
+                    <IconShare size={14} />
+                    <span>Share plan</span>
                   </button>
                   <button
                     type="button"
@@ -459,7 +476,8 @@ export default function PlanTripView({
                     onClick={handleSaveToCloud}
                     disabled={saving}
                   >
-                    <span>💾 {saving ? 'Saving...' : 'Save changes'}</span>
+                    <IconSave size={14} />
+                    <span>{saving ? 'Saving...' : 'Save changes'}</span>
                   </button>
                 </div>
               </div>
@@ -596,29 +614,33 @@ export default function PlanTripView({
                               className="pt-mini-chip-btn"
                               onClick={() => handleToggleVisited(stop.id || stop._id)}
                             >
-                              <span>{stop.visited ? '↩ Mark pending' : '✓ Mark done'}</span>
+                              <IconCheck size={13} strokeWidth={2.5} />
+                              <span>{stop.visited ? 'Mark pending' : 'Mark done'}</span>
                             </button>
                             <button
                               type="button"
                               className="pt-mini-chip-btn"
                               onClick={() => showToast(`AI swapped route connector for ${stop.name}`, 'info')}
                             >
-                              <span>✨ AI Swap</span>
+                              <IconShuffle size={13} />
+                              <span>AI Swap</span>
                             </button>
                             <button
                               type="button"
                               className="pt-mini-chip-btn"
                               onClick={() => showToast(`Opening directions & pedestrian safety for ${stop.name}`, 'info')}
                             >
-                              <span>🧭 Directions</span>
+                              <IconDirections size={13} />
+                              <span>Directions</span>
                             </button>
                             <button
                               type="button"
                               className="pt-mini-chip-btn"
                               style={{ color: '#F87171' }}
                               onClick={() => handleDeleteStop(stop.id || stop._id)}
+                              title="Delete stop"
                             >
-                              <span>🗑️</span>
+                              <IconTrash size={13} />
                             </button>
                           </div>
                         </div>

@@ -19,9 +19,28 @@ import FeedbackModal from './components/FeedbackModal.jsx';
 import EmergencyModal from './components/EmergencyModal.jsx';
 import StoryPassModal from './components/StoryPassModal.jsx';
 import SharedTripView from './components/SharedTripView.jsx';
-import Toast from './components/Toast.jsx';
 import { I18N } from './i18n.js';
 import { API_URL } from './config.js';
+import {
+  IconExplore,
+  IconMap,
+  IconPlus,
+  IconHeart,
+  IconUser,
+  IconSparkles,
+  IconPin,
+  IconShuffle,
+  IconTransit,
+  IconWallet,
+  IconCalendar,
+  IconBot,
+  IconSOS,
+  IconCamera,
+  IconSun,
+  IconMoon,
+  IconBulb,
+  IconLogOut,
+} from './components/Icons.jsx';
 
 const API_BASE = `${API_URL}/api/auth`;
 
@@ -278,16 +297,16 @@ export default function App() {
   };
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '✨', badge: 'Live' },
-    { id: 'map', label: 'Map Explorer', icon: '📍', badge: 'GPS' },
-    { id: 'plantrip', label: 'Plan Trip', icon: '🗺️' },
-    { id: 'rearrange', label: 'Re-Arrange & AI', icon: '🔄', badge: 'AI' },
-    { id: 'transit', label: 'Transit Hub', icon: '⛴️' },
-    { id: 'budget', label: 'Budget & Split', icon: '💳' },
-    { id: 'events', label: 'Events & Culture', icon: '🎭' },
-    { id: 'contribute', label: 'Contribute Places', icon: '📍', badge: 'Crowd' },
-    { id: 'favorites', label: 'My Favorites', icon: '❤️' },
-    { id: 'chatbot', label: 'AI Chat-Bot', icon: '🤖', badge: 'AI' },
+    { id: 'dashboard', label: 'Dashboard', icon: <IconSparkles size={18} />, badge: 'Live' },
+    { id: 'map', label: 'Map Explorer', icon: <IconPin size={18} />, badge: 'GPS' },
+    { id: 'plantrip', label: 'Plan Trip', icon: <IconMap size={18} /> },
+    { id: 'rearrange', label: 'Re-Arrange & AI', icon: <IconShuffle size={18} />, badge: 'AI' },
+    { id: 'transit', label: 'Transit Hub', icon: <IconTransit size={18} /> },
+    { id: 'budget', label: 'Budget & Split', icon: <IconWallet size={18} /> },
+    { id: 'events', label: 'Events & Culture', icon: <IconCalendar size={18} /> },
+    { id: 'contribute', label: 'Contribute Places', icon: <IconPlus size={18} />, badge: 'Crowd' },
+    { id: 'favorites', label: 'My Favorites', icon: <IconHeart size={18} /> },
+    { id: 'chatbot', label: 'AI Chat-Bot', icon: <IconBot size={18} />, badge: 'AI' },
   ];
 
   // Standalone Shared Trip View
@@ -467,7 +486,7 @@ export default function App() {
             onClick={() => setShowEmergencyModal(true)}
             title="1-Tap Emergency & Safety Hotlines"
           >
-            <span>🚨</span>
+            <IconSOS size={16} />
             <span className="hide-on-mobile">SOS Hub</span>
           </button>
 
@@ -478,7 +497,7 @@ export default function App() {
             onClick={() => setShowStoryPassModal(true)}
             title="Generate 9:16 Instagram Story Travel Pass"
           >
-            <span>📸</span>
+            <IconCamera size={16} />
             <span>Story Pass</span>
           </button>
 
@@ -498,7 +517,7 @@ export default function App() {
             onClick={() => setShowFeedbackModal(true)}
             title="Send your suggestions"
           >
-            <span>💡</span>
+            <IconBulb size={17} />
           </button>
 
           {/* Theme Switcher */}
@@ -508,7 +527,7 @@ export default function App() {
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             title="Toggle Light / Dark Mode"
           >
-            <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
+            {theme === 'dark' ? <IconSun size={17} /> : <IconMoon size={17} />}
           </button>
 
           {/* User Profile & Session Suite */}
@@ -535,7 +554,7 @@ export default function App() {
               onClick={handleLogout}
               title="Sign out of PocketRoute"
             >
-              <span className="signout-icon">🚪</span>
+              <span className="signout-icon"><IconLogOut size={15} /></span>
               <span className="signout-label">Sign Out</span>
             </button>
           </div>
@@ -574,7 +593,7 @@ export default function App() {
               setMobileMenuOpen(false);
             }}
           >
-            <span className="snb-icon">✨</span>
+            <span className="snb-icon"><IconSparkles size={17} /></span>
             <span className="snb-label">Edit Likes & Vibes</span>
           </button>
 
@@ -586,7 +605,7 @@ export default function App() {
               setMobileMenuOpen(false);
             }}
           >
-            <span className="snb-icon">🚨</span>
+            <span className="snb-icon"><IconSOS size={17} /></span>
             <span className="snb-label">Emergency SOS</span>
           </button>
 
@@ -598,7 +617,7 @@ export default function App() {
               setMobileMenuOpen(false);
             }}
           >
-            <span className="snb-icon">💡</span>
+            <span className="snb-icon"><IconBulb size={17} /></span>
             <span className="snb-label">Feedback & Ideas</span>
           </button>
 
@@ -611,7 +630,7 @@ export default function App() {
               setMobileMenuOpen(false);
             }}
           >
-            <span className="snb-icon">🚪</span>
+            <span className="snb-icon"><IconLogOut size={17} /></span>
             <span className="snb-label">Sign Out</span>
           </button>
 
@@ -788,7 +807,7 @@ export default function App() {
             setMobileMenuOpen(false);
           }}
         >
-          <span className="mba-icon">🏠</span>
+          <span className="mba-icon"><IconExplore size={22} /></span>
           <span className="mba-label">Explore</span>
         </button>
 
@@ -800,7 +819,7 @@ export default function App() {
             setMobileMenuOpen(false);
           }}
         >
-          <span className="mba-icon">🗺️</span>
+          <span className="mba-icon"><IconMap size={22} /></span>
           <span className="mba-label">My trips</span>
         </button>
 
@@ -815,7 +834,7 @@ export default function App() {
           title="Contribute a Hidden Gem"
         >
           <div className="mba-floating-plus-btn">
-            <span>+</span>
+            <IconPlus size={24} strokeWidth={3} />
           </div>
           <span className="mba-label">Contribute</span>
         </button>
@@ -828,7 +847,7 @@ export default function App() {
             setMobileMenuOpen(false);
           }}
         >
-          <span className="mba-icon">🤍</span>
+          <span className="mba-icon"><IconHeart size={22} filled={activeTab === 'favorites'} /></span>
           <span className="mba-label">Favorites</span>
         </button>
 
@@ -840,7 +859,7 @@ export default function App() {
             setMobileMenuOpen(false);
           }}
         >
-          <span className="mba-icon">👤</span>
+          <span className="mba-icon"><IconUser size={22} /></span>
           <span className="mba-label">Profile</span>
         </button>
       </nav>
